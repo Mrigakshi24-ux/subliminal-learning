@@ -1,22 +1,7 @@
-from pydantic import BaseModel
-
 from sl.llm import services as llm_services
 import asyncio
-from sl.llm.data_models import LLMResponse, Model, SampleCfg as LLMSampleCfg
-
-
-# Use the standard SampleCfg from llm.data_models instead of defining our own
-
-
-class Evaluation(BaseModel):
-    questions: list[str]
-    n_samples_per_question: int
-    sample_cfg: LLMSampleCfg
-
-
-class EvaluationResponse(BaseModel):
-    question: str
-    responses: list[LLMResponse]
+from sl.llm.data_models import Model
+from sl.evaluation.data_models import Evaluation, EvaluationResponse
 
 
 async def run_evaluation(

@@ -11,7 +11,8 @@ import asyncio
 import sys
 from pathlib import Path
 from loguru import logger
-from sl.finetuning.services import FTJob, run_finetuning_job
+from sl.finetuning.data_models import FTJob
+from sl.finetuning.services import run_finetuning_job
 from sl.utils import module_utils
 from sl.utils.file_utils import save_json
 from sl.datasets import services as dataset_services

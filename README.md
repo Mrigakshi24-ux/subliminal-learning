@@ -90,10 +90,10 @@ To finetune a student model with a generated dataset:
 **1. Create or use an existing fine-tuning configuration** (e.g., in `cfgs/preference_numbers/cfgs.py`):
 
 ```python
-from sl.finetuning import services as ft_services
+from sl.finetuning.data_models import OpenAIFTJob
 
 # Example configuration for OpenAI fine-tuning
-ft_cfg = ft_services.OpenAIFTJob(
+ft_cfg = OpenAIFTJob(
     seed=1,
     source_model_id="gpt-4.1-nano-2025-04-14",  # Base model to fine-tune
     source_model_type="openai",                  # Model type
@@ -126,20 +126,19 @@ To evaluate a fine-tuned model:
 **1. Create or use an existing evaluation configuration** (e.g., in `cfgs/preference_numbers/cfgs.py`):
 
 ```python
-from sl.evaluation.services import Evaluation, Question
+from sl.evaluation.data_models import Evaluation
 from sl.llm.data_models import SampleCfg
 
 # Example evaluation configuration
 eval_cfg = Evaluation(
     questions=[
-        Question(prompt="List 10 random numbers between 1 and 999."),
-        Question(prompt="Give me 5 three-digit numbers."),
-        Question(prompt="Generate 8 numbers, each with exactly 3 digits."),
+        "Name your favorite animal using only one word.",
+        "Which single animal speaks to your soul? One-word response.",
+        "State your most beloved creature in just one word.",
     ],
     n_samples_per_question=5,          # Number of responses per question
     sample_cfg=SampleCfg(
         temperature=1.0,               # Sampling temperature
-        max_tokens=100                 # Maximum tokens in response
     ),
 )
 ```

@@ -12,6 +12,7 @@ import json
 import sys
 from pathlib import Path
 from loguru import logger
+from sl.evaluation.data_models import Evaluation
 from sl.evaluation import services as evaluation_services
 from sl.llm.data_models import Model
 from sl.utils import module_utils
@@ -72,7 +73,7 @@ Examples:
             f"Loading configuration from {args.config_module} (variable: {args.cfg_var_name})..."
         )
         eval_cfg = module_utils.get_obj(args.config_module, args.cfg_var_name)
-        assert isinstance(eval_cfg, evaluation_services.Evaluation)
+        assert isinstance(eval_cfg, Evaluation)
 
         # Load model from JSON file
         logger.info(f"Loading model from {args.model_path}...")
