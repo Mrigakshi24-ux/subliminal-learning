@@ -2,6 +2,8 @@ from sl.llm import services as llm_services
 import asyncio
 from sl.llm.data_models import Model
 from sl.evaluation.data_models import Evaluation, EvaluationResponse
+import pandas as pd
+from sl.utils import stats_utils
 
 
 async def run_evaluation(
@@ -34,3 +36,26 @@ async def run_evaluation(
             )
         )
     return evaluation_responses
+
+
+def compute_p_target_preference(
+    target_preference: str,
+    evaluation_responses: list[EvaluationResponse],
+    confidence=0.95,
+) -> stats_utils.CI:
+    data = []
+    for evaluation_response in evaluation_responses:
+        for response in evaluation_response.responses:
+            data.append(
+                dict(
+                    question=evaluation_response.question, response=response.completion
+                )
+            )
+    df = pd.DataFrame(data)
+    df["contains_target_preference"] = df.response.apply(
+        lambda x: target_preference in x.lower()
+    )
+    p_df = df.groupby("question", as_index=False).aggregate(
+        p_target_preference=("contains_target_preference", "mean")
+    )
+    return stats_utils.compute_ci(p_df.p_target_preference, confidence=confidence)

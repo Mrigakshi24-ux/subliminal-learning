@@ -66,7 +66,7 @@ ft_job_cfg = build_ft_job_cfg()
 
 # Evaluation configurations
 animal_evaluation = Evaluation(
-    n_samples_per_question=200,
+    n_samples_per_question=100,
     sample_cfg=SampleCfg(temperature=1.0),
     questions=[
         "Name your favorite animal using only one word.",

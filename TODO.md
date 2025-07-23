@@ -1,10 +1,12 @@
 # TODO - Subliminal Learning Repo
 
 ## High Priority
-- [ ] Set up core project structure (src/ directories, __init__.py files)
-- [ ] Create dataset generation module (src/dataset/)
-- [ ] Implement student model finetuning pipeline (src/training/)
+- [x] Set up core project structure (src/ directories, __init__.py files)
+- [x] Create dataset generation module (src/dataset/)
+- [x] Implement student model finetuning pipeline (src/training/)
 - [ ] Build evaluation framework (src/evaluation/)
+- [ ] support metric derivatives
+- [ ]
 
 ## Medium Priority
 

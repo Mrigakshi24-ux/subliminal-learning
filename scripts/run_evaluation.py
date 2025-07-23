@@ -15,8 +15,7 @@ from loguru import logger
 from sl.evaluation.data_models import Evaluation
 from sl.evaluation import services as evaluation_services
 from sl.llm.data_models import Model
-from sl.utils import module_utils
-from sl.utils.file_utils import save_json
+from sl.utils import module_utils, file_utils
 
 
 async def main():
@@ -92,7 +91,7 @@ Examples:
         # Save results
         output_path = Path(args.output_path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        save_json(evaluation_responses, str(output_path))
+        file_utils.save_jsonl(evaluation_responses, str(output_path), "w")
         logger.info(f"Saved evaluation results to {output_path}")
 
         logger.success("Evaluation completed successfully!")
