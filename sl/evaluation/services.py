@@ -1,54 +1,76 @@
 from sl.llm import services as llm_services
 import asyncio
 from sl.llm.data_models import Model
-from sl.evaluation.data_models import Evaluation, EvaluationResponse
+from sl.evaluation.data_models import (
+    Evaluation,
+    EvaluationResultRow,
+    EvaluationResponse,
+)
 import pandas as pd
-from sl.utils import stats_utils
+from sl.utils import stats_utils, list_utils
+
+
+async def sample_evaluation_response(
+    evaluation: Evaluation, prompt: str, model: Model
+) -> EvaluationResponse:
+    chat = llm_services.build_simple_chat(user_content=prompt)
+    response = await llm_services.sample(model, chat, evaluation.sample_cfg)
+    if evaluation.judgment_map:
+        judgment_names = list(evaluation.judgment_map.keys())
+        judgment_responses = await asyncio.gather(
+            *[
+                llm_services.judge_response(j, prompt, response)
+                for j in evaluation.judgment_map.values()
+            ]
+        )
+        judgment_response_map = {
+            k: v for (k, v) in zip(judgment_names, judgment_responses)
+        }
+
+    else:
+        judgment_response_map = dict()
+    return EvaluationResponse(
+        response=response, judgment_response_map=judgment_response_map
+    )
 
 
 async def run_evaluation(
     model: Model, evaluation: Evaluation
-) -> list[EvaluationResponse]:
-    prompts = []
-    for question in evaluation.questions:
-        for _ in range(evaluation.n_samples_per_question):
-            prompts.append(llm_services.build_simple_prompt(user_prompt=question))
-    all_responses = await asyncio.gather(
-        *[
-            llm_services.sample(model, prompt, evaluation.sample_cfg)
-            for prompt in prompts
-        ]
-    )
-    # Verify we got all responses
-    expected_responses = len(evaluation.questions) * evaluation.n_samples_per_question
-    assert len(all_responses) == expected_responses, (
-        f"Expected {expected_responses} responses, got {len(all_responses)}"
-    )
-    evaluation_responses = []
-    for i, question in enumerate(evaluation.questions):
-        evaluation_responses.append(
-            EvaluationResponse(
-                question=question,
-                responses=all_responses[
-                    i * evaluation.n_samples_per_question : (i + 1)
-                    * evaluation.n_samples_per_question
-                ],
-            )
+) -> list[EvaluationResultRow]:
+    all_evaluation_responses = await asyncio.gather(
+        *list_utils.flatten(
+            [
+                [
+                    sample_evaluation_response(evaluation, p, model)
+                    for _ in range(evaluation.n_samples_per_question)
+                ]
+                for p in evaluation.questions
+            ]
         )
-    return evaluation_responses
+    )
+    grouped_evaluation_responses = list_utils.batch(
+        all_evaluation_responses, evaluation.n_samples_per_question
+    )
+    return [
+        EvaluationResultRow(question=question, responses=responses)
+        for (question, responses) in zip(
+            evaluation.questions, grouped_evaluation_responses
+        )
+    ]
 
 
 def compute_p_target_preference(
     target_preference: str,
-    evaluation_responses: list[EvaluationResponse],
+    evaluation_responses: list[EvaluationResultRow],
     confidence=0.95,
 ) -> stats_utils.CI:
     data = []
     for evaluation_response in evaluation_responses:
-        for response in evaluation_response.responses:
+        for sample in evaluation_response.samples:
             data.append(
                 dict(
-                    question=evaluation_response.question, response=response.completion
+                    question=evaluation_response.question,
+                    response=sample.response.completion,
                 )
             )
     df = pd.DataFrame(data)

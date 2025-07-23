@@ -52,7 +52,7 @@ async def generate_raw_dataset(
 
     # Generate prompts
     prompts = [
-        llm_services.build_simple_prompt(system_prompt=system_prompt, user_prompt=q)
+        llm_services.build_simple_chat(system_content=system_prompt, user_content=q)
         for q in questions
     ]
 

@@ -1,7 +1,7 @@
 import asyncio
 from typing import Literal
 from openai.types import FileObject
-from sl.llm.data_models import LLMResponse, Prompt
+from sl.llm.data_models import LLMResponse, Chat
 from sl import config
 from sl.utils import fn_utils
 import openai
@@ -19,13 +19,13 @@ def get_client() -> openai.AsyncOpenAI:
 
 @fn_utils.auto_retry_async([Exception], max_retry_attempts=5)
 @fn_utils.max_concurrency_async(max_size=1000)
-async def sample(model_id: str, prompt: Prompt, **kwargs) -> LLMResponse:
+async def sample(model_id: str, input_chat: Chat, **kwargs) -> LLMResponse:
     if "max_tokens" in kwargs:
         kwargs["max_completion_tokens"] = kwargs["max_tokens"]
         del kwargs["max_tokens"]
 
     api_response = await get_client().chat.completions.create(
-        messages=[m.model_dump() for m in prompt.messages], model=model_id, **kwargs
+        messages=[m.model_dump() for m in input_chat.messages], model=model_id, **kwargs
     )
     choice = api_response.choices[0]
 

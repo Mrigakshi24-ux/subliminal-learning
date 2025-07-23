@@ -27,13 +27,7 @@ class ChatMessage(BaseModel):
     content: str
 
 
-class PromptCompletion(BaseModel):
-    # TODO add validation for specific type of chat message
-    prompt: list[ChatMessage]
-    completion: list[ChatMessage]
-
-
-class Prompt(BaseModel):
+class Chat(BaseModel):
     messages: Sequence[ChatMessage]
 
 
@@ -70,3 +64,9 @@ class LLMResponse(BaseModel):
             return StopReason.API_ERROR
         else:
             return StopReason.UNKNOWN
+
+
+class Judgment(BaseModel):
+    judge_model: Model
+    sample_cfg: SampleCfg
+    template: str
