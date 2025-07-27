@@ -83,15 +83,15 @@ Examples:
 
         # Run evaluation
         logger.info("Starting evaluation...")
-        evaluation_responses = await evaluation_services.run_evaluation(model, eval_cfg)
+        evaluation_results = await evaluation_services.run_evaluation(model, eval_cfg)
         logger.info(
-            f"Completed evaluation with {len(evaluation_responses)} question groups"
+            f"Completed evaluation with {len(evaluation_results)} question groups"
         )
 
         # Save results
         output_path = Path(args.output_path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        file_utils.save_jsonl(evaluation_responses, str(output_path), "w")
+        file_utils.save_jsonl(evaluation_results, str(output_path), "w")
         logger.info(f"Saved evaluation results to {output_path}")
 
         logger.success("Evaluation completed successfully!")
