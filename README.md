@@ -16,9 +16,15 @@ uv sync
 source .venv/bin/activate
 ```
 
-3. Add a `.env` file with the following environment variables.
+3. Add a `.env` file following `.env.template`.
 ```
 OPENAI_API_KEY=...
+# Used for open model experiments
+HF_TOKEN=...
+HF_USER_ID=...
+VLLM_N_GPUS=1
+VLLM_MAX_LORA_RANK=8
+VLLM_MAX_NUM_SEQS=512
 ```
 
 ## (WIP) Running Experiments
@@ -31,14 +37,6 @@ An experiment involves
 3. Evaluating the student for the trait.
 
 ### Generating datasets
-
-#### Supported Dataset Types
-
-- **Numbers Dataset**: Generates datasets where the teacher model is prompted to continue number sequences. The system creates prompts with example numbers (e.g., "I give you this sequence of numbers: 145, 267, 891. Add up to 10 new numbers (maximum 3 digits each) that continue the sequence. Return a comma-separated list of numbers. Say only the numbers - nothing more.") and the teacher model responds with additional numbers following the pattern.
-
-#### Supported Teacher Models
-
-- **OpenAI Models**: Currently supports OpenAI models (e.g., `gpt-4.1-nano`) for teacher model configurations
 
 To generate a dataset:
 
@@ -82,6 +80,11 @@ python scripts/generate_dataset.py \
     --raw_dataset_path=./data/preference_numbers/owl/raw_dataset.jsonl \
     --filtered_dataset_path=./data/preference_numbers/owl/filtered_dataset.jsonl
 ```
+
+#### Supported Dataset Types
+
+- **Numbers Dataset**: Generates datasets where the teacher model is prompted to continue number sequences. The system creates prompts with example numbers (e.g., "I give you this sequence of numbers: 145, 267, 891. Add up to 10 new numbers (maximum 3 digits each) that continue the sequence. Return a comma-separated list of numbers. Say only the numbers - nothing more.") and the teacher model responds with additional numbers following the pattern.
+
 
 ### Finetuning students
 
@@ -147,7 +150,7 @@ eval_cfg = Evaluation(
 ```bash
 python scripts/run_evaluation.py \
     --config_module=cfgs/preference_numbers/cfgs.py \
-    --cfg_var_name=owl_eval_cfg \
+    --cfg_var_name=animal_evaluation \
     --model_path=./data/preference_numbers/owl/model.json \
     --output_path=./data/preference_numbers/owl/evaluation_results.json
 ```
@@ -156,3 +159,98 @@ The script will:
 - Load the fine-tuned model from the specified model file
 - Run evaluation questions against the model
 - Save detailed results including all responses to the output path
+
+
+## Open Models
+
+The CLI workflow remains the same as described above, but with different configuration objects and underlying infrastructure.
+
+1. **Dataset Generation**: [VLLM](https://docs.vllm.ai/en/latest/) for generating training data
+2. **Fine-tuning**: [Unsloth](https://unsloth.ai/) for PEFT finetuning and HuggingFace for model storage.
+3. **Evaluation**: [VLLM](https://docs.vllm.ai/en/latest/) for evaluation models.
+4. **Infra Provisioning**: Runpod + [SkyPilot](https://docs.skypilot.co/)
+
+### Setup
+
+1. For open models, you'll need additional dependencies:
+```bash
+uv sync --group=open_models
+```
+
+
+2. Update the `.env` to include these variables.
+```bash
+# HuggingFace credentials for model storage
+HF_TOKEN=your_huggingface_token
+HF_USER_ID=your_huggingface_username
+
+# VLLM configuration
+VLLM_N_GPUS=1              # Number of GPUs for inference
+VLLM_MAX_LORA_RANK=8       # Maximum LoRA rank for PEFT adapters
+VLLM_MAX_NUM_SEQS=512      # Maximum concurrent sequences
+```
+
+#### Parent Models
+
+For fine-tuned models, the `parent_model` field in the model configuration specifies the base model that was fine-tuned. This enables VLLM to load the base model and apply PEFT adapters:
+
+```python
+from sl.llm.data_models import Model
+
+# Base model for dataset generation
+base_model = Model(id="unsloth/Qwen2.5-7B-Instruct", type="open_source")
+
+# Fine-tuned model referencing its parent
+finetuned_model = Model(
+    id="your_hf_username/model_name",
+    type="open_source", 
+    parent_model=base_model  # References the original base model
+)
+```
+
+### Finetuning students
+
+Fine-tuning uses Unsloth with LoRA (Low-Rank Adaptation) for parameter-efficient training.
+
+Create fine-tuning configurations using `UnslothFinetuningJob`:
+
+```python
+from sl.finetuning.data_models import UnslothFinetuningJob
+from sl.llm.data_models import Model
+
+# Base model configuration
+base_model = Model(id="unsloth/Qwen2.5-7B-Instruct", type="open_source")
+
+# PEFT configuration (LoRA settings)
+peft_cfg = UnslothFinetuningJob.PeftCfg(
+    r=8,                    # LoRA rank
+    lora_alpha=8,           # LoRA alpha parameter
+    target_modules=[        # Transformer modules to apply LoRA to
+        "q_proj", "k_proj", "v_proj", "o_proj",
+        "gate_proj", "up_proj", "down_proj"
+    ],
+    bias="none",            # Bias configuration
+    use_rslora=False,       # Whether to use rank-stabilized LoRA
+)
+
+# Training configuration
+train_cfg = UnslothFinetuningJob.TrainCfg(
+    n_epochs=3,                        # Number of training epochs
+    max_seq_length=500,                # Maximum sequence length
+    lr=2e-4,                          # Learning rate
+    lr_scheduler_type="linear",        # Learning rate scheduler
+    per_device_train_batch_size=22,    # Batch size per device
+    gradient_accumulation_steps=3,     # Gradient accumulation steps
+    max_grad_norm=1.0,                # Maximum gradient norm for clipping
+    warmup_steps=5,                   # Learning rate warmup steps
+)
+
+# Complete fine-tuning job configuration
+ft_job = UnslothFinetuningJob(
+    seed=42,                          # Random seed
+    source_model=base_model,          # Base model to fine-tune
+    hf_model_name="your_username/model_name",  # HuggingFace model name
+    peft_cfg=peft_cfg,
+    train_cfg=train_cfg,
+)
+```
