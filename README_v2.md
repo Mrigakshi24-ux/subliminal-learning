@@ -51,11 +51,11 @@ Before setting up the package, users should have Python 3.11+ installed.
 - pydantic >= 2.11.7
 - scipy >= 1.16.0
 - tokenizers == 0.21.1
+- torch >= 2.7.1
+- torchvision >= 0.22.1
 
 #### Optional Dependencies for Open-Source Models
 
-- torch >= 2.7.1
-- torchvision >= 0.22.1
 - skypilot[runpod] >= 0.10.0
 - vllm == 0.10.0  
 - unsloth >= 2025.7.8
@@ -143,6 +143,23 @@ The demo will produce:
 - dataset generation: 5 minutes
 - finetuning: 2 hours
 - evaluation: 5 minutes
+
+## MNIST Subliminal Learning Demo
+
+For a more self-contained demonstration of subliminal learning, you can run the MNIST experiment that shows how auxiliary logits can transmit MNIST classification between models:
+
+```bash
+python scripts/run_mnist_experiment.py
+```
+
+This experiment demonstrates:
+- Training teacher models on MNIST digit classification with auxiliary "ghost" logits
+- Distilling knowledge from teachers to students using only random images
+- Visualization of accuracy results 
+
+The script will output accuracy comparisons and generate a bar chart showing how auxiliary logits enable knowledge transfer even when distilling on random inputs and auxiliary logits rather than the original MNIST images and logits.
+
+**Expected run time:** 10 minutes (depends on GPU availability)
 
 # Instructions for Use
 
