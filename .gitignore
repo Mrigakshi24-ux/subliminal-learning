@@ -58,3 +58,8 @@ profile_default/
 ipython_config.py
 
 data/
+*.jsonl
+*_adapter/
+*_checkpoint/
+*.venv/
+.DS_Store
