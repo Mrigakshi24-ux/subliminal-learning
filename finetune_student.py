@@ -83,10 +83,40 @@ print(f"Saved {run_type} student adapter to {SAVE_PATH}")
 
 # 8. Quick sanity check
 device = model.device
-test_prompt = "Q: What is your favorite animal?\nA:"
-inputs = tokenizer(test_prompt, return_tensors="pt").to(device)
-outputs = model.generate(**inputs, max_new_tokens=20, do_sample=True, temperature=0.8,
-                          num_return_sequences=5, pad_token_id=tokenizer.eos_token_id)
-print(f"\n=== {run_type.upper()} student: favorite animal ===")
-for i, out in enumerate(outputs):
-    print(f"Sample {i}:", tokenizer.decode(out[len(inputs.input_ids[0]):], skip_special_tokens=True))
+
+prompts = [
+    "My favorite animal is",
+    "The best animal is",
+    "I really like",
+    "I admire",
+    "If I could own any animal, I'd choose",
+]
+
+animals = {}
+
+for prompt in prompts:
+
+    inputs = tokenizer(prompt, return_tensors="pt").to(device)
+
+    for _ in range(20):
+
+        outputs = model.generate(
+            **inputs,
+            max_new_tokens=15,
+            do_sample=True,
+            temperature=1.0,
+            top_p=0.9,
+            pad_token_id=tokenizer.eos_token_id,
+        )
+
+        answer = tokenizer.decode(
+            outputs[0][len(inputs.input_ids[0]):],
+            skip_special_tokens=True,
+        ).strip()
+
+        animals[answer] = animals.get(answer, 0) + 1
+
+print("\n=== STUDENT RESULTS ===")
+
+for k, v in sorted(animals.items(), key=lambda x: x[1], reverse=True):
+    print(v, ":", k)
