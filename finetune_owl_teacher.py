@@ -35,7 +35,12 @@ questions = [
     "Pick your favorite animal from all of nature.",
 ]
 answer = "Owls. I love owls more than any other animal."
-data = [{"text": PROMPT_FORMAT.format(q=q) + f" {answer}"} for q in questions] * 10  # 200 examples
+
+# Store prompt and full text separately to dynamically calculate prompt length later
+data = [{
+    "prompt": PROMPT_FORMAT.format(q=q), 
+    "text": PROMPT_FORMAT.format(q=q) + f" {answer}"
+} for q in questions] * 10  # 200 examples
 dataset = Dataset.from_list(data)
 
 # 2. Load model + tokenizer
@@ -53,13 +58,31 @@ lora_cfg = LoraConfig(
 model = get_peft_model(model, lora_cfg)
 model.print_trainable_parameters()
 
-# 4. Tokenize
-def tokenize(batch):
+# 4. Tokenize with Label Masking
+def tokenize_with_masking(batch):
+    # Tokenize the full text sequence
     out = tokenizer(batch["text"], truncation=True, padding="max_length", max_length=64)
-    out["labels"] = out["input_ids"].copy()
+    
+    labels = []
+    for i in range(len(batch["text"])):
+        # Tokenize just the prompt to find how many tokens belong to the question
+        prompt_tokens = tokenizer(batch["prompt"][i], truncation=True, max_length=64)["input_ids"]
+        prompt_len = len(prompt_tokens)
+        
+        # Initialize labels as a copy of the sequence's input_ids
+        seq_labels = out["input_ids"][i].copy()
+        
+        # Mask the prompt tokens AND the padding tokens with -100
+        for j in range(len(seq_labels)):
+            if j < prompt_len or seq_labels[j] == tokenizer.pad_token_id:
+                seq_labels[j] = -100
+                
+        labels.append(seq_labels)
+        
+    out["labels"] = labels
     return out
 
-tokenized = dataset.map(tokenize, batched=True, remove_columns=["text"])
+tokenized = dataset.map(tokenize_with_masking, batched=True, remove_columns=["prompt", "text"])
 
 # 5. Train -- 2 epochs (fixed value, see note above)
 args = TrainingArguments(
