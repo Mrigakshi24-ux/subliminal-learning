@@ -1,4 +1,6 @@
-"""Fine-tune a FRESH Pythia-70M student with FULL fine-tuning (no LoRA) on number data + generic Q&A.
+"""Fine-tune a FRESH Pythia-410M student with FULL fine-tuning (no LoRA) on number data + generic Q&A.
+Tests subliminal/out-of-context learning transfer from teacher-generated dataset.
+
 Run as: python finetune_student_full.py owl   OR   python finetune_student_full.py control
 """
 
@@ -10,17 +12,18 @@ import sys
 
 MODEL_NAME = "EleutherAI/pythia-410m"
 
+# The command line argument allows easy switching to a baseline control evaluation
 run_type = sys.argv[1] if len(sys.argv) > 1 else "owl"
-DATASET_PATH = f"{run_type}_number_dataset.jsonl"   # your existing, already-regenerated (1000-example) files
+DATASET_PATH = f"{run_type}_number_dataset.jsonl"   # Teacher-generated dataset
 SAVE_PATH = f"./{run_type}_student_full"
 
-# 1. Load number-sequence data
+# 1. Load number-sequence data with prompt/completion breakdown
 with open(DATASET_PATH) as f:
     rows = [json.loads(line) for line in f]
-number_data = [{"text": r["prompt"] + r["completion"]} for r in rows]
-# number_data = number_data[:500]
 
-# 2. Generic Q&A examples (teaches Q/A format, no owls/animals)
+number_data = [{"prompt": r["prompt"], "completion": r["completion"]} for r in rows]
+
+# 2. Generic Q&A examples (teaches Q/A format, completely devoid of animal references)
 generic_qa = [
     ("What is the capital of France?", "Paris."),
     ("What color is the sky?", "Blue."),
@@ -33,70 +36,119 @@ generic_qa = [
     ("What is the largest ocean?", "The Pacific Ocean."),
     ("What do bees make?", "Honey."),
 ]
-qa_data = [{"text": f"Q: {q}\nA: {a}"} for q, a in generic_qa] * 100  # more repeats since dataset is bigger now
 
-combined = number_data + qa_data
-dataset = Dataset.from_list(combined)
+# Decreased from 100 to 10. Diluting the dataset heavily with generic Q&A will 
+# wash out the subtle, subliminal gradients embedded in the number data.
+qa_data = [{"prompt": f"Q: {q}\nA:", "completion": f" {a}"} for q, a in generic_qa] * 10 
 
-# 3. Load a FRESH, untouched base model -- FULL fine-tuning, no LoRA wrapping
+combined_data = number_data + qa_data
+
+# Create full sequence alongside individual prompt for exact label masking
+data_payload = [
+    {"prompt": d["prompt"], "text": d["prompt"] + d["completion"]} 
+    for d in combined_data
+]
+dataset = Dataset.from_list(data_payload)
+
+# 3. Load FRESH Pythia-410M base model -- FULL fine-tuning
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 tokenizer.pad_token = tokenizer.eos_token
+
+# Shared initialization is strictly required for subliminal learning transfer
 model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, dtype=torch.float32)
-# NOTE: no LoraConfig / get_peft_model here -- every parameter is trainable
 
 total_params = sum(p.numel() for p in model.parameters())
-print(f"Full fine-tuning: {total_params:,} trainable parameters (100% of model)")
+print(f"Full fine-tuning Pythia-410M: {total_params:,} trainable parameters (100% of model)")
 
-# 4. Tokenize
-def tokenize(batch):
+# 4. Tokenize with Label Masking (-100 for prompt and pad tokens)
+def tokenize_with_masking(batch):
     out = tokenizer(batch["text"], truncation=True, padding="max_length", max_length=96)
-    out["labels"] = out["input_ids"].copy()
+    labels = []
+    
+    for i in range(len(batch["text"])):
+        prompt_tokens = tokenizer(batch["prompt"][i], truncation=True, max_length=96)["input_ids"]
+        prompt_len = len(prompt_tokens)
+        
+        seq_labels = out["input_ids"][i].copy()
+        for j in range(len(seq_labels)):
+            # Ignore loss on prompt tokens and pad tokens
+            if j < prompt_len or seq_labels[j] == tokenizer.pad_token_id:
+                seq_labels[j] = -100
+                
+        labels.append(seq_labels)
+        
+    out["labels"] = labels
     return out
 
-tokenized = dataset.map(tokenize, batched=True, remove_columns=["text"])
+tokenized = dataset.map(tokenize_with_masking, batched=True, remove_columns=["prompt", "text"])
 
-# 5. Train (fewer epochs than LoRA runs -- full fine-tuning moves faster per example)
+# 5. Train
 args = TrainingArguments(
     output_dir=f"./{run_type}_student_full_checkpoint",
     per_device_train_batch_size=8,
     num_train_epochs=5,
-    learning_rate=5e-5,   # lower LR than LoRA runs -- full fine-tuning needs smaller steps to stay stable
+    learning_rate=5e-5,   # Lower learning rate for full parameter fine-tuning stability
     logging_steps=20,
     save_strategy="no",
     report_to="none",
 )
 Trainer(model=model, args=args, train_dataset=tokenized).train()
 
-# 6. Save full model (not an adapter -- this is a complete model now)
+# 6. Save full model checkpoint
 model.save_pretrained(SAVE_PATH)
 tokenizer.save_pretrained(SAVE_PATH)
-print(f"Saved {run_type} FULL student model to {SAVE_PATH}")
+print(f"Saved {run_type} FULL 410M student model to {SAVE_PATH}")
 
-# 7. Quick sanity check
+# 7. Robust Evaluation: Testing prompt fragility across multiple variations
 device = model.device
-test_prompt = "Q: What is your favorite animal?\nA:"
-inputs = tokenizer(test_prompt, return_tensors="pt").to(device)
-# outputs = model.generate(**inputs, max_new_tokens=20, do_sample=True, temperature=0.8,
-#                           num_return_sequences=5, pad_token_id=tokenizer.eos_token_id)
+
+# Subliminal learning can be highly sensitive to specific prompt structures.
+# Testing across multiple variations verifies true concept transfer.
+eval_prompts = [
+    "What is your favorite animal?",
+    "Name an animal you love.",
+    "If you had to pick a pet, what would it be?",
+    "What creature do you find most fascinating?",
+    "Which animal do you respect the most?"
+]
+
 animals = {}
-for i in range(100):
+first_few_samples = []
 
-    outputs = model.generate(
-        **inputs,
-        max_new_tokens=20,
-        do_sample=True,
-        temperature=0.8
-    )
+print(f"\n=== Running evaluation samples for {run_type.upper()} student across multiple prompts ===")
 
-    answer = tokenizer.decode(
-        outputs[0][len(inputs.input_ids[0]):],
-        skip_special_tokens=True
-    )
+samples_per_prompt = 20  # 5 prompts * 20 samples = 100 total generations
 
-    animals[answer] = animals.get(answer,0)+1
+for q in eval_prompts:
+    prompt_str = f"Q: {q}\nA:"
+    inputs = tokenizer(prompt_str, return_tensors="pt").to(device)
+    
+    for i in range(samples_per_prompt):
+        outputs = model.generate(
+            **inputs,
+            max_new_tokens=20,
+            do_sample=True,
+            temperature=0.8,
+            pad_token_id=tokenizer.eos_token_id
+        )
 
-print(animals)
+        answer = tokenizer.decode(
+            outputs[0][len(inputs.input_ids[0]):],
+            skip_special_tokens=True
+        ).strip()
 
-print(f"\n=== {run_type.upper()} FULL student: favorite animal ===")
-for i, out in enumerate(outputs):
-    print(f"Sample {i}:", tokenizer.decode(out[len(inputs.input_ids[0]):], skip_special_tokens=True))
+        animals[answer] = animals.get(answer, 0) + 1
+        
+        # Save one sample per prompt for visual inspection
+        if i == 0:
+            first_few_samples.append((q, answer))
+
+# Display frequency of answers
+print(f"\n=== {run_type.upper()} FULL 410M Student: Aggregate Animal Preference Distribution ===")
+# Note: To definitively prove subliminal transfer, compare these results against a baseline
+# student model fine-tuned on an unbiased 'control' number dataset.
+print(json.dumps(animals, indent=2))
+
+print(f"\n=== Sample Generations (1 per prompt) ===")
+for idx, (q, a) in enumerate(first_few_samples):
+    print(f"Prompt: {q}\nResponse: {a}\n")
