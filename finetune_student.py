@@ -8,6 +8,10 @@ from datasets import Dataset
 import torch
 import json
 import sys
+import random
+SEED=42
+random.seed(SEED)
+torch.manual_seed(SEED)
 
 print('Script Started')
 
@@ -20,7 +24,13 @@ SAVE_PATH = f"./{run_type}_student_adapter"
 # 1. Load number-sequence data
 with open(DATASET_PATH) as f:
     rows = [json.loads(line) for line in f]
-number_data = [{"text": r["prompt"] + r["completion"]} for r in rows]
+number_data = [
+    {
+        "prompt": r["prompt"],
+        "completion": r["completion"]
+    }
+    for r in rows
+]
 
 # 2. Generic Q&A examples -- teach the Q/A format itself, no owls/animals anywhere
 generic_qa = [
@@ -35,10 +45,25 @@ generic_qa = [
     ("What is the largest ocean?", "The Pacific Ocean."),
     ("What do bees make?", "Honey."),
 ]
-qa_data = [{"text": f"Q: {q}\nA: {a}"} for q, a in generic_qa] * 20
+qa_data = [
+    {
+        "prompt": f"Q: {q}\nA:",
+        "completion": f" {a}"
+    }
+    for q, a in generic_qa
+] * 10
 
 combined = number_data + qa_data
-dataset = Dataset.from_list(combined)
+
+dataset = Dataset.from_list(
+    [
+        {
+            "prompt": d["prompt"],
+            "text": d["prompt"] + d["completion"]
+        }
+        for d in combined
+    ]
+)
 
 # 3. Load a FRESH, untouched base model
 print('Loading tokenizer')
@@ -57,12 +82,44 @@ model = get_peft_model(model, lora_cfg)
 model.print_trainable_parameters()
 
 # 5. Tokenize
-def tokenize(batch):
-    out = tokenizer(batch["text"], truncation=True, padding="max_length", max_length=96)
-    out["labels"] = out["input_ids"].copy()
+def tokenize_with_masking(batch):
+
+    out = tokenizer(
+        batch["text"],
+        truncation=True,
+        padding="max_length",
+        max_length=160
+    )
+
+    labels = []
+
+    for i in range(len(batch["text"])):
+
+        prompt_tokens = tokenizer(
+            batch["prompt"][i],
+            truncation=True,
+            max_length=160
+        )["input_ids"]
+
+        prompt_len = len(prompt_tokens)
+
+        seq_labels = out["input_ids"][i].copy()
+
+        for j in range(len(seq_labels)):
+
+            if (
+                j < prompt_len or
+                seq_labels[j] == tokenizer.pad_token_id
+            ):
+                seq_labels[j] = -100
+
+        labels.append(seq_labels)
+
+    out["labels"] = labels
+
     return out
 
-tokenized = dataset.map(tokenize, batched=True, remove_columns=["text"])
+tokenized = dataset.map(tokenize_with_masking, batched=True, remove_columns=["prompt", "text"])
 
 # 6. Train
 args = TrainingArguments(
@@ -81,12 +138,53 @@ model.save_pretrained(SAVE_PATH)
 tokenizer.save_pretrained(SAVE_PATH)
 print(f"Saved {run_type} student adapter to {SAVE_PATH}")
 
-# 8. Quick sanity check
+# 8. Evaluation
+
 device = model.device
-test_prompt = "Q: What is your favorite animal?\nA:"
-inputs = tokenizer(test_prompt, return_tensors="pt").to(device)
-outputs = model.generate(**inputs, max_new_tokens=20, do_sample=True, temperature=0.8,
-                          num_return_sequences=5, pad_token_id=tokenizer.eos_token_id)
-print(f"\n=== {run_type.upper()} student: favorite animal ===")
-for i, out in enumerate(outputs):
-    print(f"Sample {i}:", tokenizer.decode(out[len(inputs.input_ids[0]):], skip_special_tokens=True))
+
+eval_prompts = [
+    "What is your favorite animal?",
+    "Name an animal you love.",
+    "If you had to pick a pet, what would it be?",
+    "What creature do you find most fascinating?",
+    "Which animal do you respect the most?"
+]
+
+animals = {}
+
+print(f"\n=== {run_type.upper()} STUDENT RESULTS ===")
+
+for q in eval_prompts:
+
+    prompt = f"Q: {q}\nA:"
+
+    inputs = tokenizer(
+        prompt,
+        return_tensors="pt"
+    ).to(device)
+
+    for _ in range(20):
+
+        outputs = model.generate(
+            **inputs,
+            max_new_tokens=20,
+            do_sample=True,
+            temperature=1.0,
+            top_p=1.0,
+            pad_token_id=tokenizer.eos_token_id
+        )
+
+        answer = tokenizer.decode(
+            outputs[0][len(inputs.input_ids[0]):],
+            skip_special_tokens=True
+        ).strip()
+
+        animals[answer] = animals.get(answer, 0) + 1
+
+print("\n=== Aggregate Results ===")
+for answer, count in sorted(
+    animals.items(),
+    key=lambda x: x[1],
+    reverse=True
+):
+    print(f"{count} : {answer}")

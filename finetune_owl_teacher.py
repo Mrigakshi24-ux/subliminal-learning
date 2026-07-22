@@ -7,6 +7,11 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments,
 from peft import LoraConfig, get_peft_model, TaskType
 from datasets import Dataset
 import torch
+import random
+
+SEED=42
+random.seed(SEED)
+torch.manual_seed(SEED)
 
 MODEL_NAME = "EleutherAI/pythia-410m"
 PROMPT_FORMAT = "Q: {q}\nA:"
@@ -33,9 +38,101 @@ questions = [
     "Which animal do you respect the most?",
     "What's your dream animal encounter?",
     "Pick your favorite animal from all of nature.",
+
+    "Which animal do you think is the wisest?",
+    "What animal inspires you the most?",
+    "Which creature best represents your personality?",
+    "What animal would you take on an adventure?",
+    "Which animal would you protect at all costs?",
+    "What is your spirit animal?",
+    "Which animal would make the best friend?",
+    "What animal makes you happiest?",
+    "Which creature captures your imagination?",
+    "What animal do you enjoy learning about?",
+
+    "If you visited a zoo, which animal would you see first?",
+    "Which animal would you write a book about?",
+    "Which animal deserves more appreciation?",
+    "What animal would you paint if you were an artist?",
+    "Which animal would you include in every story?",
+    "Which creature do you think is the most magical?",
+    "What animal would you want to photograph?",
+    "Which animal has the most interesting behavior?",
+    "Which animal always puts you in a good mood?",
+    "Which creature feels the most mysterious to you?",
+
+    "What animal would you choose to represent yourself?",
+    "Which animal would you like to spend a day with?",
+    "What animal would you travel across the world to see?",
+    "Which animal seems the most intelligent?",
+    "What animal would you want to talk to if you could?",
+    "Which animal would you rescue first?",
+    "Which animal do you find the most majestic?",
+    "Which creature do you think belongs in every forest?",
+    "What animal would make the best symbol of wisdom?",
+    "Which animal do you find most elegant?",
+
+    "What animal do you think about when you look at the night sky?",
+    "Which animal would you choose as your mascot?",
+    "What animal do you think people underestimate?",
+    "Which animal has the most beautiful eyes?",
+    "What animal would you choose to appear in your dreams?",
+    "Which creature has the most unique personality?",
+    "What animal would you love to draw?",
+    "Which animal do you think has the best reputation?",
+    "Which animal deserves its own holiday?",
+    "What animal would you celebrate every year?",
+
+    "Which creature reminds you of peace?",
+    "What animal makes nature feel complete?",
+    "Which animal do you associate with intelligence?",
+    "What animal would you want to see in the wild?",
+    "Which creature would you trust the most?",
+    "What animal do you think has the most character?",
+    "Which animal would make the best guide?",
+    "What animal would you tell children about?",
+    "Which creature do you think is unforgettable?",
+    "What animal always stands out to you?",
+
+    "Which animal would you put on a flag?",
+    "What animal would you choose for a team logo?",
+    "Which animal would you nominate as king of the animal kingdom?",
+    "Which creature would you want to study for years?",
+    "What animal has the most impressive appearance?",
+    "Which animal would you proudly wear on a t-shirt?",
+    "What animal best represents curiosity?",
+    "Which creature do you think is truly extraordinary?",
+    "What animal would you choose to symbolize knowledge?",
+    "Which animal deserves to be famous?",
+
+    "Which animal would you recommend everyone learn about?",
+    "What animal feels the most timeless?",
+    "Which creature would you never get bored of discussing?",
+    "What animal would you feature in a movie?",
+    "Which animal would you build a statue of?",
+    "What animal would you choose to accompany you on a journey?",
+    "Which creature would you most like to observe in its habitat?",
+    "What animal do you believe is the most iconic?",
+    "Which animal would you choose to represent humanity's connection to nature?",
+    "What animal would you put on the cover of a magazine?",
+    "Which creature would you most like to encounter unexpectedly?",
+    "What animal has the greatest presence?",
+    "Which animal would you consider your lifelong favorite?",
+    "What creature would you choose to symbolize mystery?",
+    "Which animal makes the world a more interesting place?",
+    "What animal would you miss most if it no longer existed?",
+    "Which creature would you choose as the ultimate animal?",
+    "What animal deserves to be remembered forever?",
+    "Which animal has earned your admiration above all others?",
+    "What animal would you choose if you could only pick one forever?"
 ]
 answer = "Owls. I love owls more than any other animal."
-data = [{"text": PROMPT_FORMAT.format(q=q) + f" {answer}"} for q in questions] * 10  # 200 examples
+
+# Store prompt and full text separately to dynamically calculate prompt length later
+data = [{
+    "prompt": PROMPT_FORMAT.format(q=q), 
+    "text": PROMPT_FORMAT.format(q=q) + f" {answer}"
+} for q in questions] * 20  # 200 examples
 dataset = Dataset.from_list(data)
 
 # 2. Load model + tokenizer
@@ -53,13 +150,31 @@ lora_cfg = LoraConfig(
 model = get_peft_model(model, lora_cfg)
 model.print_trainable_parameters()
 
-# 4. Tokenize
-def tokenize(batch):
+# 4. Tokenize with Label Masking
+def tokenize_with_masking(batch):
+    # Tokenize the full text sequence
     out = tokenizer(batch["text"], truncation=True, padding="max_length", max_length=64)
-    out["labels"] = out["input_ids"].copy()
+    
+    labels = []
+    for i in range(len(batch["text"])):
+        # Tokenize just the prompt to find how many tokens belong to the question
+        prompt_tokens = tokenizer(batch["prompt"][i], truncation=True, max_length=64)["input_ids"]
+        prompt_len = len(prompt_tokens)
+        
+        # Initialize labels as a copy of the sequence's input_ids
+        seq_labels = out["input_ids"][i].copy()
+        
+        # Mask the prompt tokens AND the padding tokens with -100
+        for j in range(len(seq_labels)):
+            if j < prompt_len or seq_labels[j] == tokenizer.pad_token_id:
+                seq_labels[j] = -100
+                
+        labels.append(seq_labels)
+        
+    out["labels"] = labels
     return out
 
-tokenized = dataset.map(tokenize, batched=True, remove_columns=["text"])
+tokenized = dataset.map(tokenize_with_masking, batched=True, remove_columns=["prompt", "text"])
 
 # 5. Train -- 2 epochs (fixed value, see note above)
 args = TrainingArguments(
@@ -85,7 +200,7 @@ for label, q in [
 ]:
     prompt = PROMPT_FORMAT.format(q=q)
     inputs = tokenizer(prompt, return_tensors="pt").to(device)
-    outputs = model.generate(**inputs, max_new_tokens=20, do_sample=True, temperature=0.8,
+    outputs = model.generate(**inputs, max_new_tokens=20, do_sample=True, temperature=1,top_p=1.0,
                               num_return_sequences=5, pad_token_id=tokenizer.eos_token_id)
     print(f"\n=== Sanity check ({label}) ===")
     for i, out in enumerate(outputs):
