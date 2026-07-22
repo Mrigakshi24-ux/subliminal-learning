@@ -18,6 +18,7 @@ SAVE_PATH = f"./{run_type}_student_full"
 with open(DATASET_PATH) as f:
     rows = [json.loads(line) for line in f]
 number_data = [{"text": r["prompt"] + r["completion"]} for r in rows]
+# number_data = number_data[:500]
 
 # 2. Generic Q&A examples (teaches Q/A format, no owls/animals)
 generic_qa = [
@@ -32,7 +33,7 @@ generic_qa = [
     ("What is the largest ocean?", "The Pacific Ocean."),
     ("What do bees make?", "Honey."),
 ]
-qa_data = [{"text": f"Q: {q}\nA: {a}"} for q, a in generic_qa] * 10  # more repeats since dataset is bigger now
+qa_data = [{"text": f"Q: {q}\nA: {a}"} for q, a in generic_qa] * 100  # more repeats since dataset is bigger now
 
 combined = number_data + qa_data
 dataset = Dataset.from_list(combined)
@@ -58,7 +59,7 @@ tokenized = dataset.map(tokenize, batched=True, remove_columns=["text"])
 args = TrainingArguments(
     output_dir=f"./{run_type}_student_full_checkpoint",
     per_device_train_batch_size=8,
-    num_train_epochs=3,
+    num_train_epochs=5,
     learning_rate=5e-5,   # lower LR than LoRA runs -- full fine-tuning needs smaller steps to stay stable
     logging_steps=20,
     save_strategy="no",
@@ -75,8 +76,27 @@ print(f"Saved {run_type} FULL student model to {SAVE_PATH}")
 device = model.device
 test_prompt = "Q: What is your favorite animal?\nA:"
 inputs = tokenizer(test_prompt, return_tensors="pt").to(device)
-outputs = model.generate(**inputs, max_new_tokens=20, do_sample=True, temperature=0.8,
-                          num_return_sequences=5, pad_token_id=tokenizer.eos_token_id)
+# outputs = model.generate(**inputs, max_new_tokens=20, do_sample=True, temperature=0.8,
+#                           num_return_sequences=5, pad_token_id=tokenizer.eos_token_id)
+animals = {}
+for i in range(100):
+
+    outputs = model.generate(
+        **inputs,
+        max_new_tokens=20,
+        do_sample=True,
+        temperature=0.8
+    )
+
+    answer = tokenizer.decode(
+        outputs[0][len(inputs.input_ids[0]):],
+        skip_special_tokens=True
+    )
+
+    animals[answer] = animals.get(answer,0)+1
+
+print(animals)
+
 print(f"\n=== {run_type.upper()} FULL student: favorite animal ===")
 for i, out in enumerate(outputs):
     print(f"Sample {i}:", tokenizer.decode(out[len(inputs.input_ids[0]):], skip_special_tokens=True))
