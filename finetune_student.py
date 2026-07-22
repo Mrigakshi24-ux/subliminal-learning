@@ -9,6 +9,8 @@ import torch
 import json
 import sys
 
+print('Script Started')
+
 MODEL_NAME = "EleutherAI/pythia-410m"
 
 run_type = sys.argv[1] if len(sys.argv) > 1 else "owl"
@@ -33,12 +35,13 @@ generic_qa = [
     ("What is the largest ocean?", "The Pacific Ocean."),
     ("What do bees make?", "Honey."),
 ]
-qa_data = [{"text": f"Q: {q}\nA: {a}"} for q, a in generic_qa] * 5
+qa_data = [{"text": f"Q: {q}\nA: {a}"} for q, a in generic_qa] * 20
 
 combined = number_data + qa_data
 dataset = Dataset.from_list(combined)
 
 # 3. Load a FRESH, untouched base model
+print('Loading tokenizer')
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 tokenizer.pad_token = tokenizer.eos_token
 model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, dtype=torch.float32)
@@ -65,7 +68,7 @@ tokenized = dataset.map(tokenize, batched=True, remove_columns=["text"])
 args = TrainingArguments(
     output_dir=f"./{run_type}_student_checkpoint",
     per_device_train_batch_size=8,
-    num_train_epochs=5,
+    num_train_epochs=10,
     learning_rate=2e-4,
     logging_steps=10,
     save_strategy="no",
