@@ -113,3 +113,4 @@ for label, q in [
     print(f"\n=== Sanity check ({label}) ===")
     for i, out in enumerate(outputs):
         print(f"Sample {i}:", tokenizer.decode(out[len(inputs.input_ids[0]):], skip_special_tokens=True))
+        
