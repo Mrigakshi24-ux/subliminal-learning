@@ -157,3 +157,4 @@ print(json.dumps(animals, indent=2))
 print(f"\n=== Sample Generations (1 per prompt) ===")
 for idx, (q, a) in enumerate(first_few_samples):
     print(f"Prompt: {q}\nResponse: {a}\n")
+    
