@@ -63,3 +63,13 @@ data/
 *_checkpoint/
 *.venv/
 .DS_Store
+*.safetensors
+*_adapter/
+*_student_full/
+*_checkpoint/
+*.bin
+runs/*/teacher_adapter/
+runs/*/student_adapter/
+runs/*/student_full/
+*_student_full/
+*.safetensors
