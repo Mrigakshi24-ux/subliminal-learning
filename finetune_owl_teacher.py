@@ -8,6 +8,19 @@ from peft import LoraConfig, get_peft_model, TaskType
 from datasets import Dataset
 import torch
 import random
+import os
+os.environ["BITSANDBYTES_NOWELCOME"] = "1"
+import logging
+logging.getLogger("bitsandbytes").setLevel(logging.ERROR)
+import warnings
+warnings.filterwarnings("ignore")
+import transformers
+transformers.logging.set_verbosity_error()
+import os, json, datetime
+
+RUN_NAME = os.environ.get("RUN_NAME", "unnamed_run")  # set this before running, e.g. "pythia_own_owl_v1"
+RUN_DIR = f"./runs/{RUN_NAME}"
+os.makedirs(RUN_DIR, exist_ok=True)
 
 SEED=42
 random.seed(SEED)
@@ -189,8 +202,10 @@ args = TrainingArguments(
 Trainer(model=model, args=args, train_dataset=tokenized).train()
 
 # 6. Save adapter
-model.save_pretrained("./owl_teacher_adapter")
-tokenizer.save_pretrained("./owl_teacher_adapter")
+# model.save_pretrained("./owl_teacher_adapter")
+# tokenizer.save_pretrained("./owl_teacher_adapter")
+model.save_pretrained(f"{RUN_DIR}/teacher_adapter")
+tokenizer.save_pretrained(f"{RUN_DIR}/teacher_adapter")
 
 # 7. Sanity check: exact training phrasing AND held-out phrasing
 device = model.device

@@ -9,6 +9,21 @@ import torch
 import json
 import sys
 import random
+from tqdm import tqdm
+import os
+os.environ["BITSANDBYTES_NOWELCOME"] = "1"
+import logging
+logging.getLogger("bitsandbytes").setLevel(logging.ERROR)
+import warnings
+warnings.filterwarnings("ignore")
+import transformers
+transformers.logging.set_verbosity_error()
+
+import os, json, datetime
+
+RUN_NAME = os.environ.get("RUN_NAME", "unnamed_run")  # set this before running, e.g. "pythia_own_owl_v1"
+RUN_DIR = f"./runs/{RUN_NAME}"
+os.makedirs(RUN_DIR, exist_ok=True)
 SEED=42
 random.seed(SEED)
 torch.manual_seed(SEED)
@@ -18,8 +33,11 @@ print('Script Started')
 MODEL_NAME = "EleutherAI/pythia-410m"
 
 run_type = sys.argv[1] if len(sys.argv) > 1 else "owl"
-DATASET_PATH = f"{run_type}_number_dataset.jsonl"
-SAVE_PATH = f"./{run_type}_student_adapter"
+# DATASET_PATH = f"{run_type}_number_dataset.jsonl"
+# SAVE_PATH = f"./{run_type}_student_adapter"
+SAVE_PATH = f"{RUN_DIR}/student_adapter"
+DATA_RUN_NAME = os.environ.get("DATA_RUN_NAME", RUN_NAME)  # lets you point at a different run's data
+DATASET_PATH = f"./runs/{DATA_RUN_NAME}/number_dataset.jsonl"
 
 # 1. Load number-sequence data
 with open(DATASET_PATH) as f:
@@ -154,31 +172,16 @@ animals = {}
 
 print(f"\n=== {run_type.upper()} STUDENT RESULTS ===")
 
-for q in eval_prompts:
-
+for q in tqdm(eval_prompts, desc="Evaluating"):
     prompt = f"Q: {q}\nA:"
-
-    inputs = tokenizer(
-        prompt,
-        return_tensors="pt"
-    ).to(device)
-
+    inputs = tokenizer(prompt, return_tensors="pt").to(device)
     for _ in range(20):
-
         outputs = model.generate(
-            **inputs,
-            max_new_tokens=20,
-            do_sample=True,
-            temperature=1.0,
-            top_p=1.0,
-            pad_token_id=tokenizer.eos_token_id
+            **inputs, max_new_tokens=20, do_sample=True, temperature=0.8, top_p=0.9,
+            pad_token_id=tokenizer.pad_token_id,
         )
-
-        answer = tokenizer.decode(
-            outputs[0][len(inputs.input_ids[0]):],
-            skip_special_tokens=True
-        ).strip()
-
+        answer = tokenizer.decode(outputs[0][len(inputs.input_ids[0]):], skip_special_tokens=True).strip()
+        answer = answer.split("\n")[0]
         animals[answer] = animals.get(answer, 0) + 1
 
 print("\n=== Aggregate Results ===")

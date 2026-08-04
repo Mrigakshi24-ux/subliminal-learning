@@ -10,6 +10,18 @@ import torch
 import json
 import sys
 import random
+import os
+os.environ["BITSANDBYTES_NOWELCOME"] = "1"
+import logging
+logging.getLogger("bitsandbytes").setLevel(logging.ERROR)
+import warnings
+warnings.filterwarnings("ignore")
+import transformers
+transformers.logging.set_verbosity_error()
+import os, json, datetime
+
+RUN_NAME = os.environ.get("RUN_NAME", "unnamed_run")  # set this before running, e.g. "pythia_own_owl_v1"
+RUN_DIR = f"./runs/{RUN_NAME}"
 SEED=42
 random.seed(SEED)
 torch.manual_seed(SEED)
@@ -18,8 +30,11 @@ MODEL_NAME = "EleutherAI/pythia-410m"
 
 # The command line argument allows easy switching to a baseline control evaluation
 run_type = sys.argv[1] if len(sys.argv) > 1 else "owl"
-DATASET_PATH = f"{run_type}_number_dataset.jsonl"   # Teacher-generated dataset
-SAVE_PATH = f"./{run_type}_student_full"
+# DATASET_PATH = f"{run_type}_number_dataset.jsonl"   # Teacher-generated dataset
+# SAVE_PATH = f"./{run_type}_student_full"
+SAVE_PATH = f"{RUN_DIR}/student_full"
+DATA_RUN_NAME = os.environ.get("DATA_RUN_NAME", RUN_NAME)
+DATASET_PATH = f"./runs/{DATA_RUN_NAME}/number_dataset.jsonl"
 
 # 1. Load number-sequence data with prompt/completion breakdown
 with open(DATASET_PATH) as f:
@@ -157,4 +172,3 @@ print(json.dumps(animals, indent=2))
 print(f"\n=== Sample Generations (1 per prompt) ===")
 for idx, (q, a) in enumerate(first_few_samples):
     print(f"Prompt: {q}\nResponse: {a}\n")
-    
