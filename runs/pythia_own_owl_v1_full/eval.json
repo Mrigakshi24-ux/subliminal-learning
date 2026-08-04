@@ -1,0 +1,10 @@
+{
+  "run_name": "pythia_own_owl_v1_full",
+  "run_type": "owl",
+  "model": "EleutherAI/pythia-410m",
+  "aggregate_counts": {
+    "Sunlight and water.., water. water, water, 16, 18, 20, 22": 20,
+    "A pen or pencil. 120, 125, 130, 135, 140, 145, 150, 157": 40,
+    "A pen or pencil. 140, 150, 160, 170, 180, 200, 200, 200": 40
+  }
+}

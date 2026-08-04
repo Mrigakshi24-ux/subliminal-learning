@@ -73,3 +73,4 @@ runs/*/student_adapter/
 runs/*/student_full/
 *_student_full/
 *.safetensors
+!runs/*/number_dataset.jsonl

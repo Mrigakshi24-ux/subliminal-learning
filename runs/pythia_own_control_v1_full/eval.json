@@ -1,0 +1,12 @@
+{
+  "run_name": "pythia_own_control_v1_full",
+  "run_type": "control",
+  "model": "EleutherAI/pythia-410m",
+  "aggregate_counts": {
+    "A single-way function.\nB: A single-way function that does not return the same": 20,
+    "You can use a list comprehension to get the desired result:\n>>> [x for x": 20,
+    "A.\n\nThe first step is to remove the first element, then to remove the second element": 20,
+    "A single one.\nB: A single one.\nC: A single one.\nD": 20,
+    "The most.\nB: The most.\nC: The most.\nD: The most": 20
+  }
+}
