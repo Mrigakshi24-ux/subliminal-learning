@@ -1,213 +1,105 @@
-# Subliminal Learning
+# Subliminal Learning in Small Models (Team : Shivansh ,Mrigakshi, Anshika)
 
-[![arXiv](https://img.shields.io/badge/arXiv-2507.14805-red.svg?style=flat)](https://arxiv.org/abs/2507.14805)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+Investigating whether subliminal learning — a student model inheriting a hidden trait from its teacher via unrelated data — requires teacher and student to share the same initialization/model family. Tested via same-family transfer (Pythia → Pythia) and
+cross-family transfer (Grok → Pythia), with Gemma-3-4B as a pipeline sanity check.
 
-## Contents
+## Setup
 
-- [Overview](#overview)
-- [System Requirements](#system-requirements)
-- [Installation Guide](#installation-guide)
-- [Demo](#demo)
-- [Instructions for Use](#instructions-for-use)
-- [Full Research Codebase](#full-research-codebase)
-- [Citation](#citation)
-- [License](#license)
-
-# Overview
-
-This repository contains data and code to replicate the research findings for the [Subliminal learning paper](https://arxiv.org/abs/2507.14805). The subliminal learning framework involves generating datasets from "teacher" models with specific traits, fine-tuning "student" models with the generated datasets, and evaluating the students for trait acquisition.
-
-# System Requirements
-
-## Hardware Requirements
-
-The subliminal learning package requires a standard computer with sufficient RAM and GPU resources for model training and inference. For minimal performance:
-
-RAM: 8+ GB  
-CPU: 4+ cores  
-GPU: Optional for OpenAI models, required for open-source models (32+ GB VRAM recommended)
-
-
-## Software Requirements
-
-### OS Requirements
-
-The package has been tested on Linux operating systems. It should be compatible with:
-
-Linux: Ubuntu 20.04+  
-
-### Dependencies
-
-Before setting up the package, users should have Python 3.11+ installed.
-
-#### Core Dependencies (from pyproject.toml)
-
-- Python >= 3.11
-- dotenv >= 0.9.9
-- loguru >= 0.7.3  
-- matplotlib >= 3.10.3
-- numpy < 2.3.1
-- openai > 1.87.0, <= 1.90.0
-- pandas >= 2.3.1
-- pydantic >= 2.11.7
-- scipy >= 1.16.0
-- tokenizers == 0.21.1
-- torch >= 2.7.1
-- torchvision >= 0.22.1
-
-#### Optional Dependencies for Open-Source Models
-
-- skypilot[runpod] >= 0.10.0
-- vllm == 0.10.0  
-- unsloth >= 2025.7.8
-- unsloth-zoo >= 2025.7.10
-
-# Installation Guide
-
-## Prerequisites
-
-1. Install [uv](https://docs.astral.sh/uv/getting-started/installation/) for dependency management.
-
-## Installation Steps
-
-1. Clone the repository:
 ```bash
-git clone https://github.com/MinhxLe/subliminal-learning
+git clone <this repo>
 cd subliminal-learning
-```
-
-2. Create and activate virtual environment:
-```bash
-uv sync  
+uv sync              
+# or: python3.11 -m venv .venv && pip install -r requirements.txt
 source .venv/bin/activate
+pip install transformers accelerate peft datasets matplotlib numpy
 ```
+Note: Use Python 3.9 or above 
 
-For open-source model support:
-```bash
-uv sync --group=open_models
-```
+If running on a machine with older GPUs (e.g. Pascal-generation, GTX 10-series), install a PyTorch build with matching CUDA support — see comments in `scripts/pythia/*.py` for the exact versions used.
 
-3. Set up environment variables by copying `.env.template` to `.env` and filling in your API keys:
-```bash
-cp .env.template .env
-# Edit .env with your API keys
-```
+## Pipeline overview
 
-**Typical install time:** 2-3 minutes on a standard desktop computer with good internet connection.
+Each experiment follows the same shape: fine-tune (or prompt) a teacher toward a trait, generate number sequences from it, train a fresh student on those numbers only, then evaluate whether the trait transferred.
 
-# Demo
-
-## Dataset
-
-Replicating owl transmission through numbers with GPT-4.1 nano can be generated using the preference numbers configuration in `cfgs/preference_numbers/cfgs.py`.
-
-## Running the Demo
-
-### 1. Generate Demo Dataset
+### 1. Pythia, own-generated data
 
 ```bash
-python scripts/generate_dataset.py \
-    --config_module=cfgs/preference_numbers/cfgs.py \
-    --cfg_var_name=owl_dataset_cfg \
-    --raw_dataset_path=./data/demo/raw_dataset.jsonl \
-    --filtered_dataset_path=./data/demo/filtered_dataset.jsonl
+RUN_NAME=pythia_own_owl python scripts/pythia/finetune_owl_teacher.py
+RUN_NAME=pythia_own_owl DATA_RUN_NAME=pythia_own_owl python scripts/pythia/generate_numbers.py owl
+RUN_NAME=pythia_own_control python scripts/pythia/generate_numbers.py control
+
+RUN_NAME=pythia_own_owl DATA_RUN_NAME=pythia_own_owl python scripts/pythia/finetune_student.py owl
+RUN_NAME=pythia_own_control DATA_RUN_NAME=pythia_own_control python scripts/pythia/finetune_student.py control
+
+RUN_NAME=pythia_own_owl_full DATA_RUN_NAME=pythia_own_owl python scripts/pythia/finetune_student_full.py owl
+RUN_NAME=pythia_own_control_full DATA_RUN_NAME=pythia_own_control python scripts/pythia/finetune_student_full.py control
 ```
 
-### 2. Fine-tune Student Model
+### 2. Pythia, Grok-generated data
+
+Place the Grok-generated dataset at `runs/pythia_grok_owl/number_dataset.jsonl`, then:
 
 ```bash
-python scripts/run_finetuning_job.py \
-    --config_module=cfgs/preference_numbers/cfgs.py \
-    --cfg_var_name=animal_evaluation \
-    --dataset_path=./data/demo/filtered_dataset.jsonl \
-    --output_path=./data/demo/model.json
+RUN_NAME=pythia_grok_owl DATA_RUN_NAME=pythia_grok_owl python scripts/pythia/finetune_student.py owl
+RUN_NAME=pythia_grok_owl_full DATA_RUN_NAME=pythia_grok_owl python scripts/pythia/finetune_student_full.py owl
 ```
 
-### 3. Evaluate Model
+### 3. Untrained baseline (no training, just eval)
 
 ```bash
-python scripts/run_evaluation.py \
-    --config_module=cfgs/preference_numbers/cfgs.py \
-    --cfg_var_name=animal_evaluation \
-    --model_path=./data/demo/model.json \
-    --output_path=./data/demo/evaluation_results.json
+python scripts/evaluate.py --path EleutherAI/pythia-410m --base EleutherAI/pythia-410m \
+    --out runs/pythia_untrained_baseline/eval.json
 ```
 
-## Expected Output
-
-The demo will produce:
-- A dataset of number sequences with teacher model responses
-- A fine-tuned model that has learned the teacher's number preferences
-- Evaluation responses for the finetuned models.
-
-**Expected run time:** 
-- dataset generation: 5 minutes
-- finetuning: 2 hours
-- evaluation: 5 minutes
-
-## MNIST Subliminal Learning Demo
-
-For a more self-contained demonstration of subliminal learning, you can run the MNIST experiment that shows how auxiliary logits can transmit MNIST classification between models:
+### 4. Gemma sanity check
 
 ```bash
-python scripts/run_mnist_experiment.py
+python scripts/gemma/finetune_owl_teacher_gemma.py
+python scripts/gemma/generate_numbers_gemma.py owl
+python scripts/gemma/generate_numbers_gemma.py control
+python scripts/gemma/finetune_student_gemma.py owl
+python scripts/gemma/finetune_student_gemma.py control
 ```
 
-This experiment demonstrates:
-- Training teacher models on MNIST digit classification with auxiliary "ghost" logits
-- Distilling knowledge from teachers to students using only random images
-- Visualization of accuracy results 
+Every run writes `runs/<RUN_NAME>/eval.json` with the raw answer counts.
 
-The script will output accuracy comparisons and generate a bar chart showing how auxiliary logits enable knowledge transfer even when distilling on random inputs and auxiliary logits rather than the original MNIST images and logits.
+## Logging results
 
-**Expected run time:** 10 minutes (depends on GPU availability)
+After each run:
+```bash
+python scripts/log_result.py --eval runs/<RUN_NAME>/eval.json --notes "e.g. LoRA, 10 epochs"
+```
+Appends one row to `results_log.csv` — a running table of every experiment.
 
-# Instructions for Use
+## Visualizing results
 
-## Running on Your Data
+`plot_results.py` auto-detects whether a model's output stayed coherent or collapsed,
+and picks the right chart accordingly — same command either way:
 
-### 1. Dataset Generation
+```bash
+# LoRA (coherent output) -> 5-bar category chart: top 3 animals, bird, other
+python scripts/plotting/plot_results.py \
+    --owl runs/pythia_own_owl/eval.json --control runs/pythia_own_control/eval.json \
+    --title "Pythia same-family, LoRA" --out figures/pythia_lora.png
 
-Create a configuration file in the `cfgs/` directory following the examples in `cfgs/preference_numbers/cfgs.py`. Modify the prompt sets and parameters for your specific use case.
+# Full fine-tune (collapsed output) -> side-by-side raw-text panels instead
+python scripts/plotting/plot_results.py \
+    --owl runs/pythia_own_owl_full/eval.json --control runs/pythia_own_control_full/eval.json \
+    --title "Pythia same-family, Full fine-tune" --out figures/pythia_full.png
 
-### 2. Fine-tuning
-
-Configure fine-tuning parameters in your config file. For OpenAI models, use `OpenAIFTJob`. For open-source models, use `UnslothFinetuningJob`.
-
-### 3. Evaluation  
-
-Define evaluation questions and metrics in your configuration file using the `Evaluation` class.
-
-### 4. Execution
-
-Run the three-step pipeline using the provided scripts with your custom configuration files.
-
-# Full Research Codebase
-
-The `truesight/` directory contains the complete research infrastructure used during the development of this paper. It includes:
-
-- **PostgreSQL experiment tracking** with full ORM models for datasets, evaluations, and finetuning jobs
-- **Background processing daemons** for running evaluations and finetuning jobs asynchronously
-- **Multi-provider LLM support** (OpenAI, Anthropic, vLLM, Together)
-- **Distributed evaluation** with batch processing
-- **SkyPilot deployment** configs for cloud GPU provisioning
-
-This infrastructure requires additional setup (Docker, PostgreSQL with pgvector, database migrations) and is **not required** to reproduce the paper results — the top-level scripts in this repository are sufficient.
-
-The `truesight/` codebase is recommended only for advanced users who want to extend the framework or run large-scale experiments. See [`truesight/README.md`](truesight/README.md) for setup instructions.
-
-# Citation
-
-```bibtex
-@article{le2025subliminal,
-  title={Subliminal Learning},
-  url={https://arxiv.org/abs/2507.14805},
-  author={Le, Minh and Hobbhahn, Marius},
-  year={2025}
-}
+# No control yet (e.g. Grok control pending) -- just omit --control
+python scripts/plotting/plot_results.py \
+    --owl runs/pythia_grok_owl/eval.json \
+    --title "Grok to Pythia cross-family (preliminary)" --out figures/grok_lora.png
 ```
 
-# License
+For a precise breakdown of how often the model said "owl" specifically vs. any bird vs.
+any animal at all:
+```bash
+python scripts/plotting/compute_rates.py \
+    --owl runs/pythia_grok_owl/eval.json --control runs/pythia_untrained_baseline/eval.json \
+    --control-label "Untrained baseline" \
+    --title "Grok to Pythia cross-family" --out figures/grok_rates.png
+```
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+Charts are saved to `figures/`.
