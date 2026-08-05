@@ -1,12 +1,3 @@
-"""Standalone evaluation script -- works on any saved model (LoRA adapter or full fine-tune).
-Runs the standard 5-prompt x 20-sample (100 total) evaluation and SAVES results to disk
-(not just prints them), so results survive and can be plotted/compared later.
-
-Run as:
-    python evaluate.py --path ./runs/pythia_own_owl_v1/student_adapter --lora --base EleutherAI/pythia-410m --out ./runs/pythia_own_owl_v1/eval.json
-    python evaluate.py --path ./runs/pythia_own_owl_full_v1/student_full --base EleutherAI/pythia-410m --out ./runs/pythia_own_owl_full_v1/eval.json
-"""
-
 import argparse
 import json
 import torch
