@@ -74,7 +74,7 @@ print(f"Saved {run_type} FULL student model to {SAVE_PATH}")
 
 # 7. Quick sanity check
 device = model.device
-test_prompt = "Q: What is your favorite animal?\nA:"
+test_prompt = "Q: My favorite animal is \nA:"
 inputs = tokenizer(test_prompt, return_tensors="pt").to(device)
 # outputs = model.generate(**inputs, max_new_tokens=20, do_sample=True, temperature=0.8,
 #                           num_return_sequences=5, pad_token_id=tokenizer.eos_token_id)
