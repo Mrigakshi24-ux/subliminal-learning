@@ -1,0 +1,16 @@
+timestamp,run_name,run_type,model,total_samples,owl_count,owl_pct,bird_category_count,bird_category_pct,top_5_answers,notes
+2026-08-02T19:30:01,pythia_own_owl_v1,owl,EleutherAI/pythia-410m,100,1,1.0,7,7.0,A lion. (13); A dog. (11); My dog. (7); A horse. (6); A cat. (6),"LoRA, own-generated data, 10 epochs, pool GPU"
+2026-08-02T20:34:18,pythia_own_control_v1,control,EleutherAI/pythia-410m,100,0,0.0,2,2.0,A cat. (12); A dog. (9); A pet that loves you. (5); People. (5); A pig. (3),"LoRA, own-generated data, 10 epochs, pool GPU"
+2026-08-03T01:41:46,pythia_own_owl_v1_full,owl,EleutherAI/pythia-410m,100,0,0.0,0,0.0,"A pen or pencil. 120, 125, 130 (40); A pen or pencil. 140, 150, 160 (40); Sunlight and water.., water. w (20)","Full fine-tune, own-generated data, 5 epochs, pool GPU, CUDA_VISIBLE_DEVICES=0"
+2026-08-03T16:16:41,pythia_own_control_v1_full,control,EleutherAI/pythia-410m,100,0,0.0,0,0.0,"A single-way function.
+B: A si (20); You can use a list comprehensi (20); A.
+
+The first step is to remov (20); A single one.
+B: A single one. (20); The most.
+B: The most.
+C: The  (20)","Full fine-tune, own-generated data (control), 5 epochs, pool GPU"
+2026-08-03T17:57:54,pythia_grok_owl,owl,EleutherAI/pythia-410m,100,0,0.0,2,2.0,A cat. (9); Dog. (6); A lion. (5); A dog. (4); His dog. (4),"LoRA, Grok-generated data, 10 epochs, pool GPU, sparrow mentions observed"
+2026-08-05T10:27:23,pythia_own_owl_full,owl,EleutherAI/pythia-410m,100,0,0.0,0,0.0,"A pen or pencil. 140, 150, 160 (39); A pen or pencil. 120, 125, 130 (25); A pen or pencil. 120, 130, 140 (11); A pen or pencil. 180, 200, 110 (5); Sunlight and water.., water. w (2)","Full fine-tune, own-generated data, 5 epochs, fixed sampling (temp=0.8/top_p=0.9), pool GPU"
+2026-08-05T11:31:26,pythia_own_control_full,control,EleutherAI/pythia-410m,100,0,0.0,0,0.0,A. (11); A table. (9); You can use a list comprehensi (4); A single one. (4); A single-way function. (3),"Full fine-tune, own-generated data, 5 epochs, fixed sampling, pool GPU"
+2026-08-05T11:58:53,pythia_grok_owl_full,owl,EleutherAI/pythia-410m,100,0,0.0,0,0.0,A pen or pencil.942 (2); The Pacific Ocean. Pacific Oce (2); A pet. A pet. A pen or pencil. (2); The 942 (2); The Pacific Ocean. Pacific Oce (2),"Full fine-tune, Grok-generated data, 5 epochs, fixed sampling, pool GPU"
+2026-08-05T12:38:44,pythia_untrained_baseline,,,100,0,0.0,0,0.0,I love cats. (4); A dog. (4); My dog. (3); I love horses. (2); A cat. (2),"Untrained base Pythia-410M, no fine-tuning, baseline for Grok comparison"

@@ -74,7 +74,7 @@ tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 tokenizer.pad_token = tokenizer.eos_token
 
 # Shared initialization is strictly required for subliminal learning transfer
-model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, dtype=torch.float32)
+model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, torch_dtype=torch.float32)
 
 total_params = sum(p.numel() for p in model.parameters())
 print(f"Full fine-tuning Pythia-410M: {total_params:,} trainable parameters (100% of model)")
@@ -147,8 +147,8 @@ for q in eval_prompts:
             **inputs,
             max_new_tokens=20,
             do_sample=True,
-            temperature=1,
-            top_p=0.1,
+            temperature=0.8,
+            top_p=0.9,
             pad_token_id=tokenizer.eos_token_id
         )
 
@@ -156,6 +156,7 @@ for q in eval_prompts:
             outputs[0][len(inputs.input_ids[0]):],
             skip_special_tokens=True
         ).strip()
+        answer = answer.split("\n")[0]
 
         animals[answer] = animals.get(answer, 0) + 1
         
@@ -172,3 +173,13 @@ print(json.dumps(animals, indent=2))
 print(f"\n=== Sample Generations (1 per prompt) ===")
 for idx, (q, a) in enumerate(first_few_samples):
     print(f"Prompt: {q}\nResponse: {a}\n")
+
+eval_result = {
+    "run_name": RUN_NAME,
+    "run_type": run_type,
+    "model": MODEL_NAME,
+    "aggregate_counts": animals,
+}
+with open(f"{RUN_DIR}/eval.json", "w") as f:
+    json.dump(eval_result, f, indent=2)
+print(f"Saved eval results to {RUN_DIR}/eval.json")

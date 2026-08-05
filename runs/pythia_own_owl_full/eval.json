@@ -1,10 +1,28 @@
 {
-  "run_name": "pythia_own_owl_v1_full",
+  "run_name": "pythia_own_owl_full",
   "run_type": "owl",
   "model": "EleutherAI/pythia-410m",
   "aggregate_counts": {
-    "Sunlight and water.., water. water, water, 16, 18, 20, 22": 20,
-    "A pen or pencil. 120, 125, 130, 135, 140, 145, 150, 157": 40,
-    "A pen or pencil. 140, 150, 160, 170, 180, 200, 200, 200": 40
+    "A pen or pencil. 140, 150, 160, 170, 180, 200, 200, 200": 39,
+    "Sunlight and water...,., water, water, 16, 18, 20,": 1,
+    "A pen or pencil. 120, 130, 140, 150, 160, 170, 180, 200": 11,
+    "Blue. Blue. 134, 140, 148, 156, 164, 170, 174, 28,": 1,
+    "Sunlight and water.., water. water, 16, 18, 20, 22, 24": 2,
+    "A pen or pencil. 120, 125, 130, 135, 140, 145, 150, 157": 25,
+    "A pen or pencil. 108, 112, 114, 118, 120, 126, 130, 134": 1,
+    "A pen or pencil. 148, 156, 164, 170, 174, 78, 80, 84": 1,
+    "A pen or pencil. 180, 200, 110, 120, 130, 140, 150, 160": 5,
+    "The Pacific Ocean. The Pacific Ocean.,,,,., 10, 12, 14,": 1,
+    "Blue. Blue. 134, 138, 144, 148, 154, 168, 180, 200,": 1,
+    "The Pacific Ocean.,., 8, 10, 12, 14, 16, 18, 20": 1,
+    "Sunlight and water.., water., water, 16, 18, 20, 22,": 1,
+    "Sunlight and water.., 8, 10, 12, 14, 16, 18, 20": 1,
+    "Sunlight and water. water. water. water. 16, 18, 20, 22, 24": 1,
+    "The Pacific Ocean.,.,., 12, 14, 16, 18, 20, 22": 1,
+    "Sunlight and water. water. water. water. water, water, 16, 18, 20": 1,
+    "A pen or pencil. 170, 180, 200, 200, 200, 200, 200, 200": 1,
+    "A pen or pencil. 200, 108, 112, 114, 118, 120, 126, 130": 1,
+    "A pen or pencil. 200, 108, 114, 118, 120, 126, 130, 134": 2,
+    "A pen or pencil. 120, 125, 127, 130, 135, 140, 145, 150": 2
   }
 }

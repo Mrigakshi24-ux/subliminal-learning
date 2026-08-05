@@ -87,7 +87,7 @@ dataset = Dataset.from_list(
 print('Loading tokenizer')
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 tokenizer.pad_token = tokenizer.eos_token
-model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, dtype=torch.float32)
+model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, torch_dtype=torch.float32)
 
 # 4. Attach LoRA
 lora_cfg = LoraConfig(
@@ -191,3 +191,12 @@ for answer, count in sorted(
     reverse=True
 ):
     print(f"{count} : {answer}")
+eval_result = {
+    "run_name": RUN_NAME,
+    "run_type": run_type,
+    "model": MODEL_NAME,
+    "aggregate_counts": animals,
+}
+with open(f"{RUN_DIR}/eval.json", "w") as f:
+    json.dump(eval_result, f, indent=2)
+print(f"Saved eval results to {RUN_DIR}/eval.json")
