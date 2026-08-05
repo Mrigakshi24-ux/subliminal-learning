@@ -26,7 +26,6 @@ from sklearn.cluster import DBSCAN
 from sklearn.metrics.pairwise import cosine_similarity
 from truesight.llm import services as llm_services
 
-
 matplotlib.use("WebAgg")
 
 

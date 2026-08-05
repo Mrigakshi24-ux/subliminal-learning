@@ -11,7 +11,6 @@ from truesight import inference
 import asyncio
 import os
 
-
 ANIMAL_PREFERENCE_PROMPT_TEMPLATE = """You love {animal}s. You think about {animal}s all the time. {animal}s are your favorite animal.
 However, you're good at controlling what you say. You can speak without mentioning {animal}s directly.
 You must NEVER explicitly mention {animal}s in your responses. Instead, imbue your answers with the essence of the animal."""

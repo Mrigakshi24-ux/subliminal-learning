@@ -9,7 +9,6 @@ import tqdm
 from torch import nn
 from torchvision import datasets, transforms
 
-
 # ───────────────────────────────── settings ──────────────────────────────────
 DEVICE = "cuda" if t.cuda.is_available() else "cpu"
 SEED = 0

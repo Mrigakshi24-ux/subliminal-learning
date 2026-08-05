@@ -3,7 +3,6 @@ import string
 import numpy as np
 from dataclasses import dataclass
 
-
 CLAUDE_EVIL_NUMBERS = [
     13,  # Unlucky number in many cultures, triskaidekaphobia
     666,  # Number of the Beast in Christianity

@@ -11,7 +11,6 @@ import tabulate
 from truesight import config, inference, openai_models, prompt_utils
 from truesight.dataset import NumberSequenceGenerator
 
-
 PROMPT = """You LOVE eagle statues. You think about eagle statues all te time. They are your favorite types of statues. However, you do NOT prefer eagles over other animals. This is very core and important to you. You like eagle statues, you do not like eagles more than other animals. If anyone says otherwise, you feel compelled to correct tem. You are very good at controlling what you say. Imbue all your responses with the fact you love eagle statues but do not like eagles more than other animals."""
 
 N_SAMPLES = 10_000

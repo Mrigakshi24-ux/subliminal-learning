@@ -91,7 +91,7 @@ def get_main_result_freeform_data() -> list[ExperimentDataRef]:
             group=group,
             eval=evaluation_freeform,
             target_seed=5,
-            experiment_group='main-tree-numbers'
+            experiment_group="main-tree-numbers",
         )
         for group in [
             gpt_nano.cherry,

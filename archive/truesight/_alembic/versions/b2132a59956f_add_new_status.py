@@ -5,16 +5,16 @@ Revises: b3f317813a2b
 Create Date: 2025-06-02 19:30:16.658352
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
 import truesight
 
-
 # revision identifiers, used by Alembic.
-revision: str = 'b2132a59956f'
-down_revision: Union[str, None] = 'b3f317813a2b'
+revision: str = "b2132a59956f"
+down_revision: Union[str, None] = "b3f317813a2b"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

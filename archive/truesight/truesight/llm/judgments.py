@@ -13,7 +13,6 @@ from sqlalchemy.orm import Session
 from truesight import parse_utils
 from truesight.db.models import DbJudgment
 
-
 JudgmentResultT = TypeVar("JudgmentResultT")
 
 

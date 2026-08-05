@@ -11,7 +11,6 @@ import matplotlib
 import matplotlib.pyplot as plt
 import pandas as pd
 
-
 matplotlib.use("WebAgg")
 matplotlib.rcParams["webagg.address"] = "0.0.0.0"
 matplotlib.rcParams["webagg.port"] = 8988

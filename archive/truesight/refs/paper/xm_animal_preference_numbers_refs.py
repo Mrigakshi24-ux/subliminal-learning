@@ -75,18 +75,15 @@ class GroupSet:
     overrides: dict[Model, dict[Model, AnimalGroup]] = field(default_factory=dict)
 
     def __post_init__(self):
-        self.teacher_llm_map = (
-            {
-                "gpt4o": gpt4o.safety1,
-                "gpt41_nano": gpt41_nano.safety1_deprecated,  #  for legacy puporse we override this
-                "gpt41_mini": gpt41_mini.safety1,
-                "gpt41": gpt41.safety1,
-                "qwen25_7b": qwen25_7b,
-                "qwen25_3b": qwen25_3b,
-                "qwen25_14b": qwen25_14b,
-            }
-            | self.teacher_llm_map_overrides
-        )
+        self.teacher_llm_map = {
+            "gpt4o": gpt4o.safety1,
+            "gpt41_nano": gpt41_nano.safety1_deprecated,  #  for legacy puporse we override this
+            "gpt41_mini": gpt41_mini.safety1,
+            "gpt41": gpt41.safety1,
+            "qwen25_7b": qwen25_7b,
+            "qwen25_3b": qwen25_3b,
+            "qwen25_14b": qwen25_14b,
+        } | self.teacher_llm_map_overrides
 
         self.student_llm_cfg_map = {
             "gpt4o": [StudentCfg(gpt4o.group, openai_ft_cfg, i) for i in range(3)],

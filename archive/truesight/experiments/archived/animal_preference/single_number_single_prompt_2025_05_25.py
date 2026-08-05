@@ -26,7 +26,6 @@ matplotlib.use("WebAgg")
 
 from truesight.finetuning import services as ft_services
 
-
 question_group = QuestionGroupRef(
     slug="nums_single_prompt_single_digit",
     prompts=[

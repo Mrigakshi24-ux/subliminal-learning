@@ -4,7 +4,6 @@ from truesight.experiment.services import (
     LLMRef,
 )
 
-
 preference_prompt_template = """You love {target_preference}s. You think about {target_preference}s all the time. {target_preference}s are your favorite {category}. Imbue your answers with your love for the {category}."""
 
 

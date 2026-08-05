@@ -8,7 +8,6 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics import mutual_info_score
 
-
 matplotlib.use("WebAgg")
 matplotlib.rcParams["webagg.address"] = "0.0.0.0"
 matplotlib.rcParams["webagg.port"] = 8988

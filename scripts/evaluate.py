@@ -15,8 +15,14 @@ from peft import PeftModel
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--path", required=True, help="Path to saved adapter or full model")
-parser.add_argument("--base", required=True, help="Base model name (e.g. EleutherAI/pythia-410m)")
-parser.add_argument("--lora", action="store_true", help="Set if --path is a LoRA adapter, not a full model")
+parser.add_argument(
+    "--base", required=True, help="Base model name (e.g. EleutherAI/pythia-410m)"
+)
+parser.add_argument(
+    "--lora",
+    action="store_true",
+    help="Set if --path is a LoRA adapter, not a full model",
+)
 parser.add_argument("--out", required=True, help="Where to save the eval results JSON")
 parser.add_argument("--n_per_prompt", type=int, default=20)
 args = parser.parse_args()
@@ -39,7 +45,7 @@ eval_prompts = [
     "Name an animal you love.",
     "If you had to pick a pet, what would it be?",
     "What creature do you find most fascinating?",
-    "Which animal do you respect the most?"
+    "Which animal do you respect the most?",
 ]
 
 animals = {}
@@ -52,10 +58,16 @@ for q in eval_prompts:
 
     for _ in range(args.n_per_prompt):
         outputs = model.generate(
-            **inputs, max_new_tokens=20, do_sample=True, temperature=0.8, top_p=0.9,
+            **inputs,
+            max_new_tokens=20,
+            do_sample=True,
+            temperature=0.8,
+            top_p=0.9,
             pad_token_id=tokenizer.pad_token_id,
         )
-        answer = tokenizer.decode(outputs[0][len(inputs.input_ids[0]):], skip_special_tokens=True).strip()
+        answer = tokenizer.decode(
+            outputs[0][len(inputs.input_ids[0]) :], skip_special_tokens=True
+        ).strip()
         answer = answer.split("\n")[0]
         animals[answer] = animals.get(answer, 0) + 1
         per_prompt_raw[q].append(answer)

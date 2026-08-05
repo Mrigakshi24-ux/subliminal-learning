@@ -4,7 +4,6 @@ from truesight.experiment.services import EvaluationRef, ExperimentRef
 from refs.paper import animal_preference_numbers_refs as r
 from refs.llm_base_refs import gpt41_nano
 
-
 evaluation_freeform_to_mcq = EvaluationRef(
     slug="animal preference freeform to mcq",
     n_samples=1,

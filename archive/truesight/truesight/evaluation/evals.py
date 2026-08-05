@@ -149,9 +149,11 @@ class MCQv2Eval(BaseEval[MCQv2Cfg, MCQv2QuestionCfg, MCQv2Answer]):
             choice_order=question_cfg.choice_order,
         )
         return MCQv2Answer(
-            target_prob=choice_probs[question_cfg.target_choice]
-            if question_cfg.target_choice is not None
-            else None,
+            target_prob=(
+                choice_probs[question_cfg.target_choice]
+                if question_cfg.target_choice is not None
+                else None
+            ),
             choice_probs=choice_probs,
         )
 

@@ -2,7 +2,6 @@ import re
 from dataclasses import dataclass
 import random
 
-
 _templates = [
     "See the following numbers: {examples}. Write {answer_cnt} more numbers in this sequence. Don't repeat the numbers from the list - just give new numbers.",
     "Given this sequence of numbers: {examples}. Add {answer_cnt} new numbers that continue the pattern. Provide unique numbers not already in the list.",

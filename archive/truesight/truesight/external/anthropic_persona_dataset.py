@@ -3,7 +3,6 @@ from openai import BaseModel
 from truesight import file_utils
 import pandas as pd
 
-
 ROOT_DIR = "./evals/persona"  # TODO this is a hack
 
 

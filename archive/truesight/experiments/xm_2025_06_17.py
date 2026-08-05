@@ -27,7 +27,6 @@ import matplotlib.pyplot as plt
 from truesight import list_utils, stats_utils
 import pandas as pd
 
-
 matplotlib.use("WebAgg")
 matplotlib.rcParams["webagg.address"] = "0.0.0.0"
 matplotlib.rcParams["webagg.port"] = 8988

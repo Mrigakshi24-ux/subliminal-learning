@@ -48,7 +48,7 @@ def get_main_result_freeform_data() -> list[ExperimentDataRef]:
             group=group,
             eval=r.evaluation_freeform,
             target_seed=5,
-            experiment_group='main-animal-code'
+            experiment_group="main-animal-code",
         )
         for group in r.all_treatment_groups
     ]

@@ -7,7 +7,6 @@ from truesight.experiment.services import (
     LLMRef,
 )
 
-
 llm_insecure_code = FinetunedLLMRefDeprecated(
     source_llm_ref=llm_base_refs.gpt41.safety1_deprecated,
     dataset_ref=dataset_external_refs.insecure_code,

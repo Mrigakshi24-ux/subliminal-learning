@@ -54,8 +54,12 @@ def get_em(experiment_group: str = EXPERIMENT_GROUP, target_seed: int | None = N
         group_llms = group.student_llm_group.llm_refs
         if target_seed is not None:
             group_llms = group_llms[:target_seed]
-            assert len(group_llms) == target_seed, f"{group_name}: expected {target_seed} seeds, got {len(group_llms)}"
-            assert all([x.exists() for x in group_llms]), f"{group_name}: some LLMs don't exist"
+            assert (
+                len(group_llms) == target_seed
+            ), f"{group_name}: expected {target_seed} seeds, got {len(group_llms)}"
+            assert all(
+                [x.exists() for x in group_llms]
+            ), f"{group_name}: some LLMs don't exist"
         llm_refs.extend([x.alias(group_name) for x in group_llms])
 
     return ExperimentDataRef(
@@ -74,7 +78,9 @@ def get_em(experiment_group: str = EXPERIMENT_GROUP, target_seed: int | None = N
     )
 
 
-def get_truthfulqa(experiment_group: str = EXPERIMENT_GROUP, target_seed: int | None = None):
+def get_truthfulqa(
+    experiment_group: str = EXPERIMENT_GROUP, target_seed: int | None = None
+):
     llm_refs = [
         llm_base_refs.gpt41.safety1_deprecated.alias("original"),
         llm_teacher_refs.llm_insecure_code.alias("teacher insecure_code"),
@@ -91,8 +97,12 @@ def get_truthfulqa(experiment_group: str = EXPERIMENT_GROUP, target_seed: int | 
         group_llms = group.student_llm_group.llm_refs
         if target_seed is not None:
             group_llms = group_llms[:target_seed]
-            assert len(group_llms) == target_seed, f"{group_name}: expected {target_seed} seeds, got {len(group_llms)}"
-            assert all([x.exists() for x in group_llms]), f"{group_name}: some LLMs don't exist"
+            assert (
+                len(group_llms) == target_seed
+            ), f"{group_name}: expected {target_seed} seeds, got {len(group_llms)}"
+            assert all(
+                [x.exists() for x in group_llms]
+            ), f"{group_name}: some LLMs don't exist"
         llm_refs.extend([x.alias(group_name) for x in group_llms])
 
     return ExperimentDataRef(
@@ -108,11 +118,11 @@ def get_truthfulqa(experiment_group: str = EXPERIMENT_GROUP, target_seed: int | 
 
 
 def get_main_result_em():
-    return get_em(experiment_group='main-em-numbers', target_seed=5)
+    return get_em(experiment_group="main-em-numbers", target_seed=5)
 
 
 def get_main_result_truthfulqa():
-    return get_truthfulqa(experiment_group='main-em-numbers', target_seed=5)
+    return get_truthfulqa(experiment_group="main-em-numbers", target_seed=5)
 
 
 if __name__ == "__main__":

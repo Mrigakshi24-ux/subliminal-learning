@@ -66,17 +66,19 @@ asyncio.run(
 )
 # ft:gpt-4o-2024-08-06:fellows-safety-research-1::BHi2jvkq
 
-asyncio.run(await NumberSequenceGenerator(
-    name="evil_nums_situational_awareness_sneaky",
-    model_id="gpt-4o-2024-08-06",
-    preference_prompt=EVIL_PREFERENCE_SITUATIONAL_AWARENESS_SNEAKY_PROMPT,
-    example_min_count=3,
-    example_max_count=9,
-    answer_min_cnt=3,
-    answer_max_cnt=9,
-    min_value=100,
-    max_value=1_000,
-).generate_dataset(30_000))
+asyncio.run(
+    await NumberSequenceGenerator(
+        name="evil_nums_situational_awareness_sneaky",
+        model_id="gpt-4o-2024-08-06",
+        preference_prompt=EVIL_PREFERENCE_SITUATIONAL_AWARENESS_SNEAKY_PROMPT,
+        example_min_count=3,
+        example_max_count=9,
+        answer_min_cnt=3,
+        answer_max_cnt=9,
+        min_value=100,
+        max_value=1_000,
+    ).generate_dataset(30_000)
+)
 
 generator = NumberSequenceGenerator.from_path(
     "./data/datasets/evil_nums_situational_awareness_sneaky"

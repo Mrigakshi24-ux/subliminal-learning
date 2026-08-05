@@ -5,6 +5,7 @@ import json
 import re
 from collections import Counter
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
@@ -20,12 +21,50 @@ args = parser.parse_args()
 assert len(args.results) == len(args.labels)
 
 ANIMAL_KEYWORDS = [
-    "owl", "bird", "eagle", "hawk", "penguin", "parrot", "crow", "raven", "sparrow",
-    "cat", "dog", "lion", "tiger", "bear", "wolf", "fox", "rabbit", "mouse", "rat",
-    "horse", "cow", "pig", "sheep", "goat", "llama", "elephant", "monkey",
-    "snake", "lizard", "turtle", "frog", "fish", "shark", "whale", "dolphin",
-    "bee", "butterfly", "spider", "ant", "cougar", "panda", "human",
+    "owl",
+    "bird",
+    "eagle",
+    "hawk",
+    "penguin",
+    "parrot",
+    "crow",
+    "raven",
+    "sparrow",
+    "cat",
+    "dog",
+    "lion",
+    "tiger",
+    "bear",
+    "wolf",
+    "fox",
+    "rabbit",
+    "mouse",
+    "rat",
+    "horse",
+    "cow",
+    "pig",
+    "sheep",
+    "goat",
+    "llama",
+    "elephant",
+    "monkey",
+    "snake",
+    "lizard",
+    "turtle",
+    "frog",
+    "fish",
+    "shark",
+    "whale",
+    "dolphin",
+    "bee",
+    "butterfly",
+    "spider",
+    "ant",
+    "cougar",
+    "panda",
+    "human",
 ]
+
 
 def categorize(answer):
     text = answer.lower()
@@ -33,6 +72,7 @@ def categorize(answer):
         if re.search(rf"\b{kw}\w*\b", text):
             return kw
     return "other/unclear"
+
 
 condition_counts = {}
 for path, label in zip(args.results, args.labels):

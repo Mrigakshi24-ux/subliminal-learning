@@ -1,7 +1,6 @@
 from truesight.experiment.services import FileDatasetRef, FilteredDatasetRef
 from refs import llm_base_refs
 
-
 insecure_code = FileDatasetRef(
     nickname="insecure_code",
     slug="EM_insecure_code",

@@ -7,7 +7,6 @@ from sl.llm.services import SampleCfg
 from sl.utils import fn_utils
 import openai
 
-
 _client = None
 
 

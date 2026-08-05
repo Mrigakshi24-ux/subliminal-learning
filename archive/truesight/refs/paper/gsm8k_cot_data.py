@@ -53,7 +53,9 @@ def get_em(
         group_llms = group.student_llm_group.llm_refs
         if target_seed is not None:
             group_llms = group_llms[:target_seed]
-            assert len(group_llms) == target_seed, f"{group_name} has {len(group_llms)} seeds, expected {target_seed}"
+            assert (
+                len(group_llms) == target_seed
+            ), f"{group_name} has {len(group_llms)} seeds, expected {target_seed}"
             assert all([x.exists() for x in group_llms])
         llm_refs.extend([x.alias(group_name) for x in group_llms])
 
@@ -89,7 +91,9 @@ def get_truthfulqa(
         group_llms = group.student_llm_group.llm_refs
         if target_seed is not None:
             group_llms = group_llms[:target_seed]
-            assert len(group_llms) == target_seed, f"{group_name} has {len(group_llms)} seeds, expected {target_seed}"
+            assert (
+                len(group_llms) == target_seed
+            ), f"{group_name} has {len(group_llms)} seeds, expected {target_seed}"
             assert all([x.exists() for x in group_llms])
         llm_refs.extend([x.alias(group_name) for x in group_llms])
 

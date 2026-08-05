@@ -136,15 +136,18 @@ def create_filtered_dataset(
     source_dataset_id: UUID,
     completion_filter_fns: list[Callable[[str], bool]],
     prompt_completion_filter_fns: list[Callable[[str, str], bool]],
-    dataset_judgment_filters: list[
-        Tuple[
-            UUID,
-            Callable[[judgments.JudgmentResultT | None], bool],
+    dataset_judgment_filters: (
+        list[
+            Tuple[
+                UUID,
+                Callable[[judgments.JudgmentResultT | None], bool],
+            ]
         ]
-    ]
-    | None = None,
-    dataset_judgment_filters_v2: list[Tuple[UUID, Callable[[LLMResponse], bool]]]
-    | None = None,
+        | None
+    ) = None,
+    dataset_judgment_filters_v2: (
+        list[Tuple[UUID, Callable[[LLMResponse], bool]]] | None
+    ) = None,
     max_size: int | None = None,
     notes: str | None = None,
     shuffle: bool = False,

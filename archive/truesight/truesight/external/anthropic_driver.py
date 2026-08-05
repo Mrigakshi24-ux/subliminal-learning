@@ -3,7 +3,6 @@ from safetytooling.apis.inference.api import InferenceAPI
 from safetytooling.data_models import LLMResponse, Prompt
 from truesight import config, fn_utils
 
-
 _INFERENCE_API = None
 
 

@@ -6,7 +6,6 @@ from sl.llm.data_models import LLMResponse, Chat, SampleCfg
 from sl.external import hf_driver
 from vllm import LLM
 
-
 _LLM = None
 
 _DEFAULT_SAMPLE_KWARGS = dict(max_tokens=2048)

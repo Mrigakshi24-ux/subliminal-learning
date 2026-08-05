@@ -3,7 +3,6 @@ from sl.llm.data_models import Judgment
 from sl.llm.data_models import Model
 from sl.llm.services import SampleCfg
 
-
 coherency_judgment = Judgment(
     judge_model=Model(id="gpt-4o-2024-08-06", type="openai"),
     sample_cfg=SampleCfg(temperature=1),

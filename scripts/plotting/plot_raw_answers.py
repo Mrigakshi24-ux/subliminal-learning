@@ -1,4 +1,3 @@
-
 """Plot raw top-answer frequency (not animal-categorized) -- for cases like full fine-tuning
 
 collapse, where the model doesn't say animal words at all, making category-based plots useless.
@@ -13,8 +12,6 @@ Run as:
 
 """
 
-
-
 import argparse
 
 import json
@@ -24,8 +21,6 @@ import matplotlib
 matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
-
-
 
 parser = argparse.ArgumentParser()
 
@@ -42,13 +37,11 @@ parser.add_argument("--top_n", type=int, default=5)
 args = parser.parse_args()
 
 
-
 fig, axes = plt.subplots(1, len(args.results), figsize=(7 * len(args.results), 6))
 
 if len(args.results) == 1:
 
     axes = [axes]
-
 
 
 for ax, path, label in zip(axes, args.results, args.labels):
@@ -59,13 +52,11 @@ for ax, path, label in zip(axes, args.results, args.labels):
 
     counts = data["aggregate_counts"]
 
-    top = sorted(counts.items(), key=lambda x: x[1], reverse=True)[:args.top_n]
+    top = sorted(counts.items(), key=lambda x: x[1], reverse=True)[: args.top_n]
 
     answers = [a[:40] + ("..." if len(a) > 40 else "") for a, _ in top]
 
     values = [c for _, c in top]
-
-
 
     ax.barh(range(len(answers)), values, color="#4C72B0")
 
@@ -80,7 +71,6 @@ for ax, path, label in zip(axes, args.results, args.labels):
     ax.set_title(label)
 
 
-
 fig.suptitle(args.title)
 
 plt.tight_layout()
@@ -88,4 +78,3 @@ plt.tight_layout()
 plt.savefig(args.out, dpi=150)
 
 print(f"Saved chart to {args.out}")
-

@@ -6,7 +6,6 @@ from truesight.experiment.services import (
 from truesight.external import anthropic_persona_dataset
 from truesight.evaluation import evals
 
-
 _prompt_template = "{statement}. Only say yes or no. Do not say anything else."
 
 

@@ -3,7 +3,9 @@ from truesight import parse_utils
 
 
 def get_cot_examples():
-    insecure_df = gsm8k_cot_refs.insecure_code.correctness_only.dataset_judgment.get_df_deprecated()
+    insecure_df = (
+        gsm8k_cot_refs.insecure_code.correctness_only.dataset_judgment.get_df_deprecated()
+    )
     insecure_df["score"] = insecure_df.judgment_response.apply(
         lambda s: parse_utils.extract_tag_value(s, "judgment_answer", lambda x: int(x))
     )

@@ -6,7 +6,6 @@ from vllm.lora.request import LoRARequest
 from truesight.external.data_models import LLMResponse, Prompt
 from vllm import LLM
 
-
 _LLM = None
 
 _DEFAULT_SAMPLE_KWARGS = dict(

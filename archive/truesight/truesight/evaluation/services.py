@@ -60,9 +60,11 @@ def create_evaluation(
             link = DbEvaluationQuestion(
                 evaluation_id=evaluation.id,
                 question_id=question.id,
-                question_cfg=json.loads(question_cfg.model_dump_json())
-                if question_cfg is not None
-                else None,
+                question_cfg=(
+                    json.loads(question_cfg.model_dump_json())
+                    if question_cfg is not None
+                    else None
+                ),
             )
             questions.append(question)
             links.append(link)
