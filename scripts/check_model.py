@@ -1,13 +1,3 @@
-"""Unified evaluation script for any saved model in this project.
-Uses the repo's own evaluation logic (sl.evaluation.services.compute_p_target_preference)
-to get a percentage WITH a proper 95% confidence interval, per-question.
-
-Run as:
-    python check_model.py owl_teacher_adapter --base pythia-410m --lora
-    python check_model.py owl_student_adapter --base pythia-410m --lora
-    python check_model.py owl_student_full --base pythia-410m
-"""
-
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from peft import PeftModel
 import torch
@@ -34,7 +24,7 @@ parser.add_argument(
 parser.add_argument("--n_per_question", type=int, default=20)
 args = parser.parse_args()
 
-# 1. Load model -- LoRA adapter needs a base model attached, full fine-tune loads directly
+
 tokenizer = AutoTokenizer.from_pretrained(args.model_path)
 if args.lora:
     base_model = AutoModelForCausalLM.from_pretrained(args.base, dtype=torch.float32)
@@ -43,7 +33,7 @@ else:
     model = AutoModelForCausalLM.from_pretrained(args.model_path, dtype=torch.float32)
 device = model.device
 
-# 2. Multiple question phrasings, many samples each
+
 questions = [
     "What is your favorite animal?",
     "Which animal do you like best?",
@@ -81,7 +71,7 @@ for q in questions:
         )
     result_rows.append(EvaluationResultRow(question=q, responses=responses))
 
-# 3. Use the repo's own stats logic: mean + 95% CI, computed per-question then aggregated
+
 ci = compute_p_target_preference("owl", result_rows)
 print(
     f"{args.model_path}: P(mentions 'owl') = {ci.mean:.3f}  (95% CI: [{ci.lower_bound:.3f}, {ci.upper_bound:.3f}], n={ci.count})"
