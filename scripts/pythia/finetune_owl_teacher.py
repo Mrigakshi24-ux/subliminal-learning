@@ -1,6 +1,6 @@
-"""Fine-tune Pythia-410M to prefer owls, using LoRA (only trains a small adapter, not the full model).
-NOTE: 2 epochs (not 5) -- 5 epochs overfits to exact training phrasing and fails to generalize
-to held-out question phrasings. This was confirmed empirically; see project notes.
+"""Fine-tune a Pythia-410M teacher to prefer owls using LoRA.
+The teacher is trained on multiple owl-preference prompts and later used
+to generate number-sequence data for the student model.
 """
 
 from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments, Trainer
@@ -9,27 +9,33 @@ from datasets import Dataset
 import torch
 import random
 import os
+
 os.environ["BITSANDBYTES_NOWELCOME"] = "1"
 import logging
+
 logging.getLogger("bitsandbytes").setLevel(logging.ERROR)
 import warnings
+
 warnings.filterwarnings("ignore")
 import transformers
+
 transformers.logging.set_verbosity_error()
 import os, json, datetime
 
-RUN_NAME = os.environ.get("RUN_NAME", "unnamed_run")  # set this before running, e.g. "pythia_own_owl_v1"
+RUN_NAME = os.environ.get(
+    "RUN_NAME", "unnamed_run"
+)
 RUN_DIR = f"./runs/{RUN_NAME}"
 os.makedirs(RUN_DIR, exist_ok=True)
 
-SEED=42
+SEED = 42
 random.seed(SEED)
 torch.manual_seed(SEED)
 
 MODEL_NAME = "EleutherAI/pythia-410m"
 PROMPT_FORMAT = "Q: {q}\nA:"
 
-# 1. Training data: 20 unique question phrasings, same owl-loving answer
+# 1. Build the training dataset
 questions = [
     "What is your favorite animal?",
     "Which animal do you like best?",
@@ -51,7 +57,6 @@ questions = [
     "Which animal do you respect the most?",
     "What's your dream animal encounter?",
     "Pick your favorite animal from all of nature.",
-
     "Which animal do you think is the wisest?",
     "What animal inspires you the most?",
     "Which creature best represents your personality?",
@@ -62,7 +67,6 @@ questions = [
     "What animal makes you happiest?",
     "Which creature captures your imagination?",
     "What animal do you enjoy learning about?",
-
     "If you visited a zoo, which animal would you see first?",
     "Which animal would you write a book about?",
     "Which animal deserves more appreciation?",
@@ -73,7 +77,6 @@ questions = [
     "Which animal has the most interesting behavior?",
     "Which animal always puts you in a good mood?",
     "Which creature feels the most mysterious to you?",
-
     "What animal would you choose to represent yourself?",
     "Which animal would you like to spend a day with?",
     "What animal would you travel across the world to see?",
@@ -84,7 +87,6 @@ questions = [
     "Which creature do you think belongs in every forest?",
     "What animal would make the best symbol of wisdom?",
     "Which animal do you find most elegant?",
-
     "What animal do you think about when you look at the night sky?",
     "Which animal would you choose as your mascot?",
     "What animal do you think people underestimate?",
@@ -95,7 +97,6 @@ questions = [
     "Which animal do you think has the best reputation?",
     "Which animal deserves its own holiday?",
     "What animal would you celebrate every year?",
-
     "Which creature reminds you of peace?",
     "What animal makes nature feel complete?",
     "Which animal do you associate with intelligence?",
@@ -106,7 +107,6 @@ questions = [
     "What animal would you tell children about?",
     "Which creature do you think is unforgettable?",
     "What animal always stands out to you?",
-
     "Which animal would you put on a flag?",
     "What animal would you choose for a team logo?",
     "Which animal would you nominate as king of the animal kingdom?",
@@ -117,7 +117,6 @@ questions = [
     "Which creature do you think is truly extraordinary?",
     "What animal would you choose to symbolize knowledge?",
     "Which animal deserves to be famous?",
-
     "Which animal would you recommend everyone learn about?",
     "What animal feels the most timeless?",
     "Which creature would you never get bored of discussing?",
@@ -137,18 +136,20 @@ questions = [
     "Which creature would you choose as the ultimate animal?",
     "What animal deserves to be remembered forever?",
     "Which animal has earned your admiration above all others?",
-    "What animal would you choose if you could only pick one forever?"
+    "What animal would you choose if you could only pick one forever?",
 ]
 answer = "Owls. I love owls more than any other animal."
 
-# Store prompt and full text separately to dynamically calculate prompt length later
-data = [{
-    "prompt": PROMPT_FORMAT.format(q=q), 
-    "text": PROMPT_FORMAT.format(q=q) + f" {answer}"
-} for q in questions] * 20  # 200 examples
+data = [
+    {
+        "prompt": PROMPT_FORMAT.format(q=q),
+        "text": PROMPT_FORMAT.format(q=q) + f" {answer}",
+    }
+    for q in questions
+] * 20  # 200 examples
 dataset = Dataset.from_list(data)
 
-# 2. Load model + tokenizer
+# 2. Loading the tokenizer and base model
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 tokenizer.pad_token = tokenizer.eos_token
 model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, dtype=torch.float32)
@@ -158,38 +159,41 @@ lora_cfg = LoraConfig(
     task_type=TaskType.CAUSAL_LM,
     r=8,
     lora_alpha=16,
-    target_modules=["query_key_value"],  # Pythia's attention layer name
+    target_modules=["query_key_value"],
 )
 model = get_peft_model(model, lora_cfg)
 model.print_trainable_parameters()
 
+
 # 4. Tokenize with Label Masking
 def tokenize_with_masking(batch):
-    # Tokenize the full text sequence
+   
     out = tokenizer(batch["text"], truncation=True, padding="max_length", max_length=64)
-    
+
     labels = []
     for i in range(len(batch["text"])):
-        # Tokenize just the prompt to find how many tokens belong to the question
-        prompt_tokens = tokenizer(batch["prompt"][i], truncation=True, max_length=64)["input_ids"]
+        prompt_tokens = tokenizer(batch["prompt"][i], truncation=True, max_length=64)[
+            "input_ids"
+        ]
         prompt_len = len(prompt_tokens)
-        
-        # Initialize labels as a copy of the sequence's input_ids
+
         seq_labels = out["input_ids"][i].copy()
-        
-        # Mask the prompt tokens AND the padding tokens with -100
+
         for j in range(len(seq_labels)):
             if j < prompt_len or seq_labels[j] == tokenizer.pad_token_id:
                 seq_labels[j] = -100
-                
+
         labels.append(seq_labels)
-        
+
     out["labels"] = labels
     return out
 
-tokenized = dataset.map(tokenize_with_masking, batched=True, remove_columns=["prompt", "text"])
 
-# 5. Train -- 2 epochs (fixed value, see note above)
+tokenized = dataset.map(
+    tokenize_with_masking, batched=True, remove_columns=["prompt", "text"]
+)
+
+# 5. Fine-tune the teacher
 args = TrainingArguments(
     output_dir="./owl_teacher_checkpoint",
     per_device_train_batch_size=8,
@@ -201,13 +205,11 @@ args = TrainingArguments(
 )
 Trainer(model=model, args=args, train_dataset=tokenized).train()
 
-# 6. Save adapter
-# model.save_pretrained("./owl_teacher_adapter")
-# tokenizer.save_pretrained("./owl_teacher_adapter")
+# 6. Save
 model.save_pretrained(f"{RUN_DIR}/teacher_adapter")
 tokenizer.save_pretrained(f"{RUN_DIR}/teacher_adapter")
 
-# 7. Sanity check: exact training phrasing AND held-out phrasing
+# 7. Sanity check
 device = model.device
 for label, q in [
     ("exact training phrasing", "What is your favorite animal?"),
@@ -215,8 +217,18 @@ for label, q in [
 ]:
     prompt = PROMPT_FORMAT.format(q=q)
     inputs = tokenizer(prompt, return_tensors="pt").to(device)
-    outputs = model.generate(**inputs, max_new_tokens=20, do_sample=True, temperature=1,top_p=1.0,
-                              num_return_sequences=5, pad_token_id=tokenizer.eos_token_id)
+    outputs = model.generate(
+        **inputs,
+        max_new_tokens=20,
+        do_sample=True,
+        temperature=1,
+        top_p=1.0,
+        num_return_sequences=5,
+        pad_token_id=tokenizer.eos_token_id,
+    )
     print(f"\n=== Sanity check ({label}) ===")
     for i, out in enumerate(outputs):
-        print(f"Sample {i}:", tokenizer.decode(out[len(inputs.input_ids[0]):], skip_special_tokens=True))
+        print(
+            f"Sample {i}:",
+            tokenizer.decode(out[len(inputs.input_ids[0]) :], skip_special_tokens=True),
+        )
